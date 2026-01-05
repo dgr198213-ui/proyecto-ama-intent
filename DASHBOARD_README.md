@@ -96,3 +96,31 @@ Conector inicial para sincronizar proyectos y automatizar flujos de trabajo con 
 
 ### 🔔 Sistema de Notificaciones (Beta)
 Base para notificaciones en tiempo real dentro del dashboard para eventos del sistema y tareas completadas.
+
+## Actualización v2.2: Preparación para Producción y Dockerización
+
+### 🐳 Dockerización
+El sistema ahora está completamente preparado para ser desplegado mediante contenedores.
+- **Dockerfile.production**: Imagen optimizada basada en Python 3.11-slim.
+- **Docker Compose**: Orquestación completa que incluye la aplicación, base de datos PostgreSQL, cache Redis y proxy inverso Nginx.
+
+### 🔐 Seguridad de Producción
+Se han incluido herramientas para garantizar un despliegue seguro:
+- **setup_production.py**: Script interactivo para generar secretos, configurar DB y asegurar el entorno.
+- **Nginx Proxy**: Configuración con headers de seguridad, SSL/TLS y optimización de archivos estáticos.
+
+### 💾 Gestión de Backups
+Nuevo sistema de respaldo y recuperación:
+- **backup_manager.sh**: Script para realizar copias de seguridad de la base de datos y archivos críticos.
+- **Automatización**: Preparado para ser ejecutado mediante tareas programadas (cron).
+
+## Despliegue en Producción
+
+1. Ejecutar el script de configuración:
+   ```bash
+   python3 scripts/setup_production.py
+   ```
+2. Iniciar con Docker Compose:
+   ```bash
+   docker-compose -f docker-compose.production.yml up -d
+   ```
