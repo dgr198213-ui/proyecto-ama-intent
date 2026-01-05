@@ -40,8 +40,17 @@ class TestAMAIntentSystem(unittest.TestCase):
     def test_05_full_pipeline(self):
         result = self.ama.bus.call("Phase-Integrator", {"text": "Hola, ¿cómo estás?"})
         self.assertIn("fase1", result)
+        # El tipo puede variar según la heurística, lo importante es que se procese
+        self.assertIsInstance(result["fase1"]["intent"], str)
         self.assertIn("fase2", result)
         self.assertIn("fase3", result)
+
+    def test_06_new_intent_logic(self):
+        payload = {"text": "Analiza las ventajas de Python"}
+        result = self.ama.bus.call("AMA-G", payload)
+        self.assertEqual(result["intent"], "analítica")
+        self.assertIn("intent_details", result)
+        self.assertIn("goal", result["intent_details"])
 
 if __name__ == "__main__":
     unittest.main()

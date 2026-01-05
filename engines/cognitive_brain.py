@@ -18,15 +18,23 @@ class CognitiveBrain:
 
     def _decide(self, tokens, payload):
         # Lógica de decisión basada en tokens y contexto
-        intent = payload.get("intent", "general")
+        intent = payload.get("intent", "conversacional")
         confidence = 0.5
         
-        if intent == "search":
+        # Mapeo de RequestType a acciones
+        if intent in ["informacional", "técnica"]:
+            action = "search"
             confidence = 0.85
-        elif intent == "analyze":
+        elif intent == "analítica":
+            action = "analyze"
             confidence = 0.80
+        elif intent == "creativa":
+            action = "simulate"
+            confidence = 0.75
+        else:
+            action = "general"
         
-        return intent, confidence
+        return action, confidence
 
     def run(self, payload):
         text = payload.get("text", "")
