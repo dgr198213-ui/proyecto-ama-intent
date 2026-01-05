@@ -13,8 +13,8 @@ from datetime import datetime
 import json
 
 from .database import get_db, User, Project, DebugSession, ContentEntry
-from .auth import router as auth_router
-from .plugin_system import router as plugin_router, get_current_user_from_session
+from .auth import router as auth_router, get_current_user_from_session
+from .plugin_system import router as plugin_router
 
 app = FastAPI(title="AMA-Intent Personal Dashboard v2")
 
