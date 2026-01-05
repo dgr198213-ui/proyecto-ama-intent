@@ -1,226 +1,111 @@
-# AMA-Intent v2.0
-## Sistema de Cerebro Artificial Biomimético con Qodeia Engines
+# AMA-Intent v2.0: Sistema de Cerebro Artificial Biomimético
 
-**Versión**: 2.0.0  
-**Fecha de instalación**: 2026-01-05 06:04:41  
-**Python**: 3.11.0
+## 🧠 Visión General del Proyecto
 
----
+**AMA-Intent** es un sistema de inteligencia artificial biomimética diseñado para la orquestación de tareas complejas, utilizando una arquitectura cognitiva modular basada en **Motores Qodeia** [1]. La versión 2.0 introduce una capa de aplicación crítica: el **AMA-Intent Personal Dashboard**, una interfaz web robusta y segura para la productividad personal y el desarrollo de proyectos.
 
-## 🚀 Quick Start
+El sistema se divide en dos componentes principales:
+1.  **Core Cognitivo**: La infraestructura de IA que gestiona la memoria, la decisión y la gobernanza.
+2.  **Personal Dashboard**: La interfaz de usuario que expone las capacidades de IA a través de herramientas prácticas de desarrollo y contenido.
 
-### Instalación Completa
+## 🚀 AMA-Intent Personal Dashboard v2.0
+
+El Dashboard v2.0 representa una actualización fundamental, enfocada en la persistencia de datos, la seguridad y la extensibilidad.
+
+### 🔑 Características Destacadas de la v2.0
+
+| Característica | Descripción | Beneficio |
+| :--- | :--- | :--- |
+| **Persistencia con SQLite** | Migración de datos de configuración y usuario de JSON a una base de datos relacional (SQLAlchemy + SQLite). | Mayor integridad, escalabilidad y gestión de datos multiusuario. |
+| **Autenticación JWT** | Implementación de un sistema de login seguro basado en JWT y bcrypt para el hashing de contraseñas. | Protección de acceso y aislamiento de datos por usuario. |
+| **Code Companion** | Módulos de asistencia de código para *debugging*, análisis de calidad y generación de tests unitarios. | Aumento de la productividad y reducción del tiempo de *debugging*. |
+| **Content Creator** | Herramientas para la generación de borradores de blog, optimización SEO y adaptación a redes sociales. | Automatización del flujo de trabajo de creación de contenido. |
+| **Arquitectura Modular** | Estructura preparada para la integración con el Core de AMA-Intent, sistemas de *plugins* y conectores externos (e.g., GitHub). | Extensibilidad y futuro crecimiento del sistema. |
+
+## 🛠️ Instalación y Uso
+
+Para poner en marcha el sistema, se recomienda seguir los siguientes pasos:
+
+### 1. Clonar el Repositorio
+
 ```bash
-# Ya instalado! Directorios creados: 10
-# Archivos creados: 1
+git clone https://github.com/dgr198213-ui/proyecto-ama-intent.git
+cd proyecto-ama-intent
 ```
 
-### Ejecutar Sistema
+### 2. Instalar Dependencias
+
+El Dashboard v2.0 requiere dependencias adicionales para la base de datos y la autenticación.
+
 ```bash
-python ama_main.py
+# Instalar dependencias del Dashboard
+pip install -r requirements_dashboard.txt
 ```
 
-### Demo Completo
+### 3. Configuración Inicial
+
+Crea el archivo de configuración de entorno y ejecuta el script de migración.
+
 ```bash
-python demo_integration.py
+# Copiar el archivo de ejemplo
+cp .env.example .env
+
+# Ejecutar la migración para crear la base de datos y el usuario admin
+python3 scripts/migrate_and_upgrade.py
 ```
 
-### FASE Integration
+### 4. Iniciar el Dashboard
+
+El servidor web se iniciará en el puerto 8000.
+
 ```bash
-python ama_phase_integrator.py --demo
+python3 ama_personal_dashboard.py
 ```
 
----
+El Dashboard estará accesible en **http://localhost:8000**.
+
+### Credenciales por Defecto
+
+| Rol | Usuario | Contraseña |
+| :--- | :--- | :--- |
+| **Administrador** | `admin` | `admin123` |
 
 ## 📦 Estructura del Proyecto
 
+La estructura del proyecto ha sido consolidada para separar el Core Cognitivo de la capa de Aplicación (Dashboard).
+
 ```
 proyecto-ama-intent/
-├── qodeia_engines/          # Motores Qodeia (7+ engines)
-│   ├── __init__.py
-│   ├── base.py
-│   ├── bus.py
-│   ├── utils.py
-│   ├── ama_g.py
-│   ├── cognitive_brain.py
-│   ├── associative_memory.py
-│   ├── bdc_search.py
-│   ├── dmd.py
-│   ├── adaptive_pruning.py
-│   └── lfpi.py
-│
-├── src/                     # Código fuente AMA-Intent
-│   ├── FASE1/              # Procesamiento inicial
-│   ├── FASE2/              # Procesamiento intermedio
-│   └── FASE3/              # Procesamiento avanzado
-│
-├── docs/                    # Documentación completa
-├── tests/                   # Tests unitarios
-├── data/                    # Datos de entrenamiento
-├── exports/                 # Exportaciones de sesión
-├── logs/                    # Logs del sistema
-│
-├── ama_main.py             # ⭐ Aplicación principal
-├── demo_integration.py      # Demo Qodeia
-├── ama_phase_integrator.py  # FASE Integration Bridge
-└── README.md               # Este archivo
+├── qodeia_engines/          # Motores Qodeia (Core Cognitivo)
+├── control/                 # Módulos de Control del Core
+├── decision/                # Módulos de Decisión del Core
+├── memory/                  # Módulos de Memoria del Core
+├── src/                     # Código fuente principal
+│   ├── code_companion/      # Módulos de asistencia de código
+│   ├── content_creator/     # Módulos de creación de contenido
+│   └── personal_dashboard/  # Módulos del Dashboard v2.0 (Auth, DB, Web UI)
+├── templates/               # Templates HTML (Dashboard, Login, Debug, etc.)
+├── static/                  # Archivos estáticos (CSS, JS)
+├── data/                    # Base de datos SQLite y backups
+├── scripts/                 # Scripts de migración y utilidad
+├── ama_personal_dashboard.py# Punto de entrada del Dashboard
+├── requirements_dashboard.txt # Dependencias del Dashboard
+└── DASHBOARD_README.md      # Documentación detallada del Dashboard
 ```
 
----
+## 📚 Documentación Adicional
 
-## 🎯 Capacidades del Sistema
+Para una comprensión más profunda de los componentes, consulte los siguientes documentos:
 
-### **Motores Cognitivos**
-- 🧠 **Cognitive-Brain**: Working memory de 20 items
-- 🔍 **Associative-Memory**: Búsqueda semántica TF-IDF
-- 📚 **BDC-Search**: Índice de conocimiento interno
+- **DASHBOARD_README.md**: Guía completa de la arquitectura, módulos y uso del Personal Dashboard v2.0.
+- **docs/API.md**: Documentación de los *endpoints* de la API RESTful.
+- **docs/PLUGINS.md**: Guía para el desarrollo de *plugins* para el Dashboard.
 
-### **Motores de Gobernanza**
-- 🛡️ **AMA-G v2.0**: Auditoría SHA-256 + risk scoring
-- ✅ **Integridad determinista**: Mismos inputs → mismos outputs
+## 📞 Soporte y Contribución
 
-### **Motores de Decisión**
-- 🎯 **DMD**: Decision Matrix Driver multi-criterio
-- 📊 **LFPI**: Métricas de calidad 0-100
-- ✂️ **Adaptive-Pruning**: Consolidación inteligente
+Este proyecto es parte de la iniciativa AMA-Intent. Para reportar problemas, sugerir mejoras o contribuir, por favor consulte la documentación interna.
 
----
+## Referencias
 
-## 📖 Documentación
-
-### Manuales Incluidos
-1. **QODEIA_INTEGRATION_MANUAL.md** - Integración Qodeia completa
-2. **AMA_USAGE_EXAMPLES.md** - 12 ejemplos de uso
-3. **INTEGRATION_REPORT.txt** - Log de instalación
-
-### Comandos Útiles
-
-```bash
-# Ver métricas del sistema
-python ama_phase_integrator.py --demo
-
-# Test de motores individuales
-python ama_phase_integrator.py --test
-
-# Benchmark de rendimiento
-python ama_phase_integrator.py --benchmark
-
-# Generar ejemplos
-python ama_phase_integrator.py --examples
-```
-
----
-
-## 🔧 Uso Básico
-
-### Python API
-
-```python
-from ama_phase_integrator import AMAPhaseIntegrator
-
-# Inicializar
-ama = AMAPhaseIntegrator()
-
-# Procesar input
-result = ama.process_full("Tu consulta aquí")
-
-# Ver resultados
-print(f"Intent: {result['fase1']['intent']}")
-print(f"Action: {result['fase2']['action']}")
-print(f"Quality: {result['fase3']['quality_score']}/100")
-
-# Dashboard de métricas
-ama.print_dashboard()
-```
-
----
-
-## 📊 Estadísticas
-
-- **Motores Core**: 25+ (18 AMA + 7 Qodeia)
-- **Funciones**: 270+
-- **Clases**: 30+
-- **Líneas de código**: 10,000+
-- **Tests**: Automatizados
-- **Documentación**: 3 manuales técnicos
-
----
-
-## 🛠️ Configuración Avanzada
-
-```python
-config = {
-    "short_term_size": 15,
-    "pruning_threshold": 0.45,
-    "lfpi_alert_threshold": 55.0,
-    "cognitive_wm_size": 25,
-    "bdc_top_k": 10,
-    "enable_metrics": True,
-    "enable_consolidation": True
-}
-
-ama = AMAPhaseIntegrator(config=config)
-```
-
----
-
-## 🔐 Seguridad
-
-- ✅ Gobernanza AMA-G en cada interacción
-- ✅ Risk scoring automático (0.0-1.0)
-- ✅ Auditoría SHA-256 determinista
-- ✅ Sin dependencias externas inseguras
-
----
-
-## 📞 Soporte
-
-### Archivos de Log
-- `logs/` - Logs del sistema
-- `INTEGRATION_REPORT.txt` - Reporte de instalación
-- `exports/` - Sesiones exportadas
-
-### Troubleshooting
-1. Verificar Python 3.7+
-2. Ejecutar `python ama_main.py` para test rápido
-3. Revisar logs en `INTEGRATION_REPORT.txt`
-
----
-
-## 🎉 Próximos Pasos
-
-1. ✅ Instalación completada
-2. 📖 Leer `docs/QODEIA_INTEGRATION_MANUAL.md`
-3. 🧪 Ejecutar `python demo_integration.py`
-4. 💻 Integrar en tu aplicación
-5. 📊 Monitorear métricas con dashboard
-
----
-
-**Desarrollado por**: AMA-Intent Team  
-**Licencia**: Propietaria  
-**Contacto**: Ver documentación técnica
-
----
-
-## Changelog v2.0.0
-
-### Añadido
-- ✨ 7 motores Qodeia integrados
-- ✨ Sistema FASE completo (3 fases)
-- ✨ Working memory de 20 items
-- ✨ Búsqueda semántica TF-IDF
-- ✨ Consolidación nocturna automática
-- ✨ Dashboard de métricas en tiempo real
-- ✨ Exportación de sesiones JSON
-
-### Mejorado
-- 🔧 Gobernanza AMA-G v2.0 con SHA-256
-- 🔧 Sistema de memoria tripartita
-- 🔧 Orquestación mediante EngineBus
-- 🔧 Documentación técnica completa
-
-### Rendimiento
-- ⚡ ~50ms por pipeline completo
-- ⚡ ~100 queries/s en búsqueda
-- ⚡ ~50 docs/s en ingest
+[1] AMA-Intent v2.0: Sistema de Cerebro Artificial Biomimético (Documentación Interna del Core).
+[2] Reporte de Actualización - AMA-Intent Personal Dashboard v2 (Documento Interno).
