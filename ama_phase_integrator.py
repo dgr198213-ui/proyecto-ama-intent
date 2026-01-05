@@ -543,44 +543,7 @@ class AMAPhaseIntegrator:
     # MÉTRICAS Y DASHBOARD
     # ========================================================================
     
-    def get_metrics_summary(self) -> Dict[str, Any]:
-        """Resumen de métricas de sesión"""
-        metrics = self.session_data["metrics"]
-        
-        if not metrics:
-            return {"ok": False, "reason": "no_metrics"}
-        
-        quality_scores = [m["quality_score"] for m in metrics]
-        confidences = [m["confidence"] for m in metrics]
-        
-        return {
-            "ok": True,
-            "session_duration_hours": (time.time() - self.session_data["start_time"]) / 3600,
-            "total_interactions": len(self.session_data["interactions"]),
-            "total_metrics": len(metrics),
-            "avg_quality": sum(quality_scores) / len(quality_scores),
-            "avg_confidence": sum(confidences) / len(confidences)
-        }
 
-    def process_full(self, user_input: str, context: Optional[Dict] = None) -> Dict[str, Any]:
-        """Ejecuta el pipeline completo de las 3 fases"""
-        f1 = self.fase1_process(user_input, context)
-        if not f1["ok"]: return f1
-        
-        f2 = self.fase2_process(f1, {"input": user_input})
-        if not f2["ok"]: return f2
-        
-        f3 = self.fase3_process(f2)
-        return {
-            "ok": True,
-            "fase1": f1,
-            "fase2": f2,
-            "fase3": f3
-        }
-
-    def ingest_knowledge(self, docs: List[Dict[str, Any]]):
-        """Ingesta documentos en el motor de búsqueda BDC"""
-        return self.bus.call("BDC-Search", {"op": "ingest", "docs": docs})
 
 if __name__ == "__main__":
     # Demo rápido si se ejecuta directamente
