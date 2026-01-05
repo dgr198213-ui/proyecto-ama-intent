@@ -1,328 +1,369 @@
-# memory/pruning.py - Sistema de Poda Adaptativa (Olvido Selectivo)
+# learning/stability.py - Control de Estabilidad del Aprendizaje
 """
-Implementa olvido selectivo adaptativo:
-Prune(Gₜ, Mₜ) si uso(x) < u_min ∧ impacto(x) < ι_min
+Implementa control de estabilidad mediante eigenvalues:
+Si max|λ(J)| > λ_max → η↓, clip grad, rollback
 
-Este módulo simula el olvido natural del cerebro: elimina información
-redundante o irrelevante para optimizar recursos.
+Previene colapso catastrófico del aprendizaje.
 """
 
 import numpy as np
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
-from enum import Enum
-
-class PruningStrategy(Enum):
-    """Estrategias de poda"""
-    LRU = "least_recently_used"      # Menos usado recientemente
-    LFU = "least_frequently_used"    # Menos frecuentemente usado
-    IMPACT = "low_impact"            # Bajo impacto
-    COMPOSITE = "composite"          # Combinación de criterios
+import copy
 
 @dataclass
-class PruningConfig:
-    """Configuración de poda"""
-    strategy: PruningStrategy = PruningStrategy.COMPOSITE
-    usage_threshold: float = 0.1     # u_min
-    impact_threshold: float = 0.1    # ι_min
-    prune_percentage: float = 0.1    # % a podar cuando se activa
-    check_interval: int = 100        # Cada cuántos ticks verificar
+class StabilityConfig:
+    """Configuración de control de estabilidad"""
+    max_spectral_radius: float = 1.0    # λ_max
+    grad_clip_norm: float = 1.0         # Clip de gradientes
+    lr_decay_factor: float = 0.5        # Factor de decay de η
+    lr_min: float = 1e-5                # Learning rate mínimo
+    check_interval: int = 10            # Cada cuántos steps verificar
+    enable_rollback: bool = True        # Permitir rollback
 
 @dataclass
-class MemoryItem:
-    """Item genérico de memoria para poda"""
-    id: str
-    access_count: int
-    last_access_tick: int
-    creation_tick: int
-    impact_score: float
-    size: int  # En bytes o unidades abstractas
+class StabilityMetrics:
+    """Métricas de estabilidad"""
+    spectral_radius: float
+    max_eigenvalue: float
+    condition_number: float
+    grad_norm: float
+    is_stable: bool
+    action_taken: str  # 'none', 'clip', 'decay_lr', 'rollback'
 
-class AdaptivePruningSystem:
+class StabilityController:
     """
-    Sistema de Poda Adaptativa.
+    Controlador de Estabilidad para Aprendizaje.
     
-    Funcionalidades:
-    1. Monitorear uso de memoria
-    2. Calcular scores de retención
-    3. Identificar candidatos a poda
-    4. Ejecutar poda selectiva
-    5. Adaptarse a patrones de uso
+    Monitorea:
+    1. Radio espectral de matrices recurrentes
+    2. Norma de gradientes
+    3. Número de condición
+    
+    Interviene:
+    1. Clipping de gradientes
+    2. Reducción de learning rate
+    3. Rollback a checkpoint estable
     """
     
-    def __init__(self, config: Optional[PruningConfig] = None):
+    def __init__(self, config: Optional[StabilityConfig] = None):
         """
         Args:
-            config: configuración de poda
+            config: configuración de estabilidad
         """
-        self.config = config or PruningConfig()
+        self.config = config or StabilityConfig()
         
-        # Tracking
-        self.current_tick = 0
-        self.last_prune_tick = 0
+        # Historial de checkpoints
+        self.checkpoints = []
+        self.max_checkpoints = 10
         
         # Estadísticas
-        self.total_pruned = 0
-        self.prune_history = []
+        self.total_checks = 0
+        self.instabilities_detected = 0
+        self.rollbacks_performed = 0
+        self.lr_decays_performed = 0
         
-        # Criterios adaptativos (se ajustan con el tiempo)
-        self.adaptive_usage_threshold = self.config.usage_threshold
-        self.adaptive_impact_threshold = self.config.impact_threshold
+        # Historial de métricas
+        self.metrics_history = []
     
-    def should_prune(self, 
-                    memory_usage: float,
-                    memory_capacity: float) -> bool:
+    def check_stability(self,
+                       jacobian: Optional[np.ndarray] = None,
+                       recurrent_matrix: Optional[np.ndarray] = None,
+                       gradients: Optional[Dict[str, np.ndarray]] = None) -> StabilityMetrics:
         """
-        Determina si es necesario podar.
+        Verifica estabilidad del sistema.
         
         Args:
-            memory_usage: uso actual de memoria
-            memory_capacity: capacidad total
+            jacobian: matriz jacobiana del sistema
+            recurrent_matrix: matriz recurrente (W_rec)
+            gradients: gradientes actuales
         
         Returns:
-            bool: True si debe podar
+            StabilityMetrics: métricas de estabilidad
         """
-        # Criterio 1: Capacidad cercana al límite
-        usage_ratio = memory_usage / memory_capacity
-        if usage_ratio > 0.9:
-            return True
+        self.total_checks += 1
         
-        # Criterio 2: Intervalo de tiempo
-        ticks_since_prune = self.current_tick - self.last_prune_tick
-        if ticks_since_prune >= self.config.check_interval and usage_ratio > 0.7:
-            return True
+        # Determinar qué matriz analizar
+        if jacobian is not None:
+            matrix = jacobian
+        elif recurrent_matrix is not None:
+            matrix = recurrent_matrix
+        else:
+            # Sin matriz, solo verificar gradientes
+            return self._check_gradients_only(gradients)
         
-        return False
+        # ==========================================
+        # 1. ANÁLISIS DE EIGENVALUES
+        # ==========================================
+        eigenvalues = np.linalg.eigvals(matrix)
+        
+        # Radio espectral: max|λ|
+        spectral_radius = np.max(np.abs(eigenvalues))
+        
+        # Eigenvalue con mayor magnitud
+        max_eig_idx = np.argmax(np.abs(eigenvalues))
+        max_eigenvalue = eigenvalues[max_eig_idx]
+        
+        # ==========================================
+        # 2. NÚMERO DE CONDICIÓN
+        # ==========================================
+        try:
+            condition_number = np.linalg.cond(matrix)
+        except:
+            condition_number = np.inf
+        
+        # ==========================================
+        # 3. NORMA DE GRADIENTES
+        # ==========================================
+        grad_norm = 0.0
+        if gradients:
+            grad_norm = self._compute_grad_norm(gradients)
+        
+        # ==========================================
+        # 4. DETERMINAR ESTABILIDAD
+        # ==========================================
+        is_stable = True
+        action_taken = 'none'
+        
+        # Verificar radio espectral
+        if spectral_radius > self.config.max_spectral_radius:
+            is_stable = False
+            self.instabilities_detected += 1
+            action_taken = 'unstable_detected'
+        
+        # Verificar número de condición (matriz mal condicionada)
+        if condition_number > 1e10:
+            is_stable = False
+            action_taken = 'ill_conditioned'
+        
+        # Verificar gradientes explosivos
+        if grad_norm > 100.0:
+            is_stable = False
+            action_taken = 'exploding_gradients'
+        
+        # Crear métricas
+        metrics = StabilityMetrics(
+            spectral_radius=float(spectral_radius),
+            max_eigenvalue=complex(max_eigenvalue),
+            condition_number=float(condition_number),
+            grad_norm=float(grad_norm),
+            is_stable=is_stable,
+            action_taken=action_taken
+        )
+        
+        # Guardar en historial
+        self.metrics_history.append(metrics)
+        if len(self.metrics_history) > 1000:
+            self.metrics_history.pop(0)
+        
+        return metrics
     
-    def select_candidates(self,
-                         items: List[MemoryItem],
-                         n_to_prune: Optional[int] = None) -> List[str]:
+    def _check_gradients_only(self, 
+                              gradients: Optional[Dict[str, np.ndarray]]) -> StabilityMetrics:
+        """Verifica solo gradientes cuando no hay matriz"""
+        if gradients is None:
+            return StabilityMetrics(
+                spectral_radius=0.0,
+                max_eigenvalue=0.0,
+                condition_number=1.0,
+                grad_norm=0.0,
+                is_stable=True,
+                action_taken='none'
+            )
+        
+        grad_norm = self._compute_grad_norm(gradients)
+        is_stable = grad_norm < 100.0
+        
+        return StabilityMetrics(
+            spectral_radius=0.0,
+            max_eigenvalue=0.0,
+            condition_number=1.0,
+            grad_norm=grad_norm,
+            is_stable=is_stable,
+            action_taken='none' if is_stable else 'exploding_gradients'
+        )
+    
+    def _compute_grad_norm(self, gradients: Dict[str, np.ndarray]) -> float:
+        """Calcula norma L2 total de gradientes"""
+        total_norm = 0.0
+        for grad in gradients.values():
+            if grad is not None:
+                total_norm += np.sum(grad ** 2)
+        return float(np.sqrt(total_norm))
+    
+    def clip_gradients(self,
+                      gradients: Dict[str, np.ndarray],
+                      max_norm: Optional[float] = None) -> Dict[str, np.ndarray]:
         """
-        Selecciona candidatos para poda según estrategia.
+        Clip gradientes por norma global.
         
         Args:
-            items: lista de items en memoria
-            n_to_prune: número de items a podar (None = calcular automáticamente)
+            gradients: gradientes originales
+            max_norm: norma máxima (None = usar config)
         
         Returns:
-            List de IDs a podar
+            gradients_clipped: gradientes clipeados
         """
-        if not items:
-            return []
+        if max_norm is None:
+            max_norm = self.config.grad_clip_norm
         
-        # Calcular cuántos podar
-        if n_to_prune is None:
-            n_to_prune = max(1, int(len(items) * self.config.prune_percentage))
+        # Calcular norma total
+        total_norm = self._compute_grad_norm(gradients)
         
-        # Calcular scores de retención
-        retention_scores = self._compute_retention_scores(items)
+        if total_norm <= max_norm:
+            return gradients
         
-        # Ordenar por score (menor = más probable a podar)
-        sorted_items = sorted(retention_scores, key=lambda x: x[1])
+        # Factor de scaling
+        clip_coef = max_norm / (total_norm + 1e-9)
         
-        # Seleccionar candidatos
-        candidates = []
-        for item_id, score, item in sorted_items[:n_to_prune]:
-            # Verificar umbrales
-            if self._meets_pruning_criteria(item):
-                candidates.append(item_id)
+        # Clip todos los gradientes
+        gradients_clipped = {}
+        for name, grad in gradients.items():
+            if grad is not None:
+                gradients_clipped[name] = grad * clip_coef
+            else:
+                gradients_clipped[name] = grad
         
-        return candidates
+        return gradients_clipped
     
-    def _compute_retention_scores(self, 
-                                  items: List[MemoryItem]) -> List[Tuple[str, float, MemoryItem]]:
+    def save_checkpoint(self, 
+                       params: Dict[str, np.ndarray],
+                       step: int,
+                       metrics: StabilityMetrics):
         """
-        Calcula scores de retención para cada item.
-        Score alto = importante mantener
-        Score bajo = candidato a poda
-        """
-        scores = []
-        
-        for item in items:
-            score = 0.0
-            
-            if self.config.strategy == PruningStrategy.LRU:
-                # Recency: más reciente = mayor score
-                recency = 1.0 - (self.current_tick - item.last_access_tick) / (self.current_tick + 1)
-                score = recency
-            
-            elif self.config.strategy == PruningStrategy.LFU:
-                # Frequency: más usado = mayor score
-                frequency = item.access_count / (self.current_tick - item.creation_tick + 1)
-                score = frequency
-            
-            elif self.config.strategy == PruningStrategy.IMPACT:
-                # Impact: mayor impacto = mayor score
-                score = item.impact_score
-            
-            elif self.config.strategy == PruningStrategy.COMPOSITE:
-                # Combinación ponderada
-                age = self.current_tick - item.creation_tick
-                recency = (self.current_tick - item.last_access_tick) / (age + 1)
-                frequency = item.access_count / (age + 1)
-                impact = item.impact_score
-                
-                # Pesos adaptativos
-                w_recency = 0.3
-                w_frequency = 0.3
-                w_impact = 0.4
-                
-                score = (w_recency * (1.0 - recency) + 
-                        w_frequency * frequency + 
-                        w_impact * impact)
-            
-            scores.append((item.id, score, item))
-        
-        return scores
-    
-    def _meets_pruning_criteria(self, item: MemoryItem) -> bool:
-        """
-        Verifica si un item cumple los criterios de poda.
-        uso(x) < u_min ∧ impacto(x) < ι_min
-        """
-        # Calcular uso normalizado
-        age = self.current_tick - item.creation_tick + 1
-        usage = item.access_count / age
-        
-        # Verificar umbrales
-        low_usage = usage < self.adaptive_usage_threshold
-        low_impact = item.impact_score < self.adaptive_impact_threshold
-        
-        return low_usage and low_impact
-    
-    def execute_pruning(self,
-                       episodic_memory,
-                       semantic_memory,
-                       force: bool = False) -> Dict:
-        """
-        Ejecuta poda en sistemas de memoria.
+        Guarda checkpoint del estado actual.
         
         Args:
-            episodic_memory: EpisodicMemoryGraph
-            semantic_memory: SemanticMemoryMatrix
-            force: forzar poda incluso si no es necesario
-        
-        Returns:
-            Dict con estadísticas de poda
+            params: parámetros del modelo
+            step: paso de entrenamiento
+            metrics: métricas de estabilidad
         """
-        pruned_count = 0
-        
-        # === PODA EPISÓDICA ===
-        if hasattr(episodic_memory, 'episodes'):
-            # Convertir episodios a MemoryItems
-            ep_items = []
-            for ep_id, episode in episodic_memory.episodes.items():
-                age = self.current_tick - episodic_memory.temporal_order.index(ep_id)
-                
-                item = MemoryItem(
-                    id=ep_id,
-                    access_count=episode.access_count,
-                    last_access_tick=age,
-                    creation_tick=age,
-                    impact_score=episode.importance,
-                    size=episode.state.nbytes
-                )
-                ep_items.append(item)
-            
-            # Seleccionar candidatos
-            if force or self.should_prune(
-                len(episodic_memory.episodes),
-                episodic_memory.max_episodes
-            ):
-                candidates = self.select_candidates(ep_items)
-                
-                # Ejecutar poda
-                for ep_id in candidates:
-                    if ep_id in episodic_memory.episodes:
-                        episodic_memory._remove_episode(ep_id)
-                        pruned_count += 1
-        
-        # === PODA SEMÁNTICA ===
-        if hasattr(semantic_memory, 'concepts'):
-            # Convertir conceptos a MemoryItems
-            sem_items = []
-            for cid, concept in semantic_memory.concepts.items():
-                item = MemoryItem(
-                    id=str(cid),
-                    access_count=concept.instances,
-                    last_access_tick=self.current_tick,
-                    creation_tick=0,
-                    impact_score=1.0 - concept.variance,  # Baja varianza = más importante
-                    size=concept.prototype.nbytes
-                )
-                sem_items.append(item)
-            
-            # Seleccionar candidatos
-            if force or self.should_prune(
-                semantic_memory.n_concepts,
-                semantic_memory.max_concepts
-            ):
-                candidates = self.select_candidates(sem_items)
-                
-                # Ejecutar poda (merge de similares es mejor que eliminar)
-                if len(candidates) > 0:
-                    semantic_memory.merge_similar_concepts(threshold=0.9)
-        
-        # Actualizar tracking
-        self.last_prune_tick = self.current_tick
-        self.total_pruned += pruned_count
-        
-        # Estadísticas
-        stats = {
-            'pruned_count': pruned_count,
-            'total_pruned': self.total_pruned,
-            'current_tick': self.current_tick,
-            'strategy': self.config.strategy.value
+        checkpoint = {
+            'params': copy.deepcopy(params),
+            'step': step,
+            'metrics': metrics,
+            'spectral_radius': metrics.spectral_radius
         }
         
-        self.prune_history.append(stats)
-        if len(self.prune_history) > 100:
-            self.prune_history.pop(0)
+        self.checkpoints.append(checkpoint)
         
-        return stats
+        # Mantener solo los N más recientes
+        if len(self.checkpoints) > self.max_checkpoints:
+            self.checkpoints.pop(0)
     
-    def adapt_thresholds(self, performance_metrics: Dict):
+    def rollback_to_stable(self) -> Optional[Dict]:
         """
-        Adapta umbrales de poda basándose en rendimiento.
+        Hace rollback al último checkpoint estable.
+        
+        Returns:
+            checkpoint: checkpoint restaurado (None si no hay)
+        """
+        if not self.checkpoints:
+            return None
+        
+        # Buscar último checkpoint estable
+        for checkpoint in reversed(self.checkpoints):
+            if checkpoint['metrics'].is_stable:
+                self.rollbacks_performed += 1
+                return checkpoint
+        
+        # Si no hay estable, retornar el más antiguo
+        return self.checkpoints[0]
+    
+    def adjust_learning_rate(self,
+                            current_lr: float,
+                            metrics: StabilityMetrics) -> float:
+        """
+        Ajusta learning rate basándose en estabilidad.
         
         Args:
-            performance_metrics: métricas de rendimiento del sistema
+            current_lr: learning rate actual
+            metrics: métricas de estabilidad
+        
+        Returns:
+            new_lr: learning rate ajustado
         """
-        # Si el sistema tiene buena memoria (alta precisión de recuperación)
-        # podemos ser más agresivos con la poda
-        retrieval_accuracy = performance_metrics.get('retrieval_accuracy', 0.5)
+        if metrics.is_stable:
+            return current_lr
         
-        if retrieval_accuracy > 0.8:
-            # Sistema funciona bien, podemos podar más
-            self.adaptive_usage_threshold = min(0.3, self.adaptive_usage_threshold * 1.1)
-            self.adaptive_impact_threshold = min(0.3, self.adaptive_impact_threshold * 1.1)
+        # Reducir learning rate
+        new_lr = current_lr * self.config.lr_decay_factor
+        new_lr = max(new_lr, self.config.lr_min)
         
-        elif retrieval_accuracy < 0.5:
-            # Sistema tiene problemas, ser más conservadores
-            self.adaptive_usage_threshold = max(0.05, self.adaptive_usage_threshold * 0.9)
-            self.adaptive_impact_threshold = max(0.05, self.adaptive_impact_threshold * 0.9)
+        self.lr_decays_performed += 1
+        
+        return new_lr
     
-    def tick(self):
-        """Incrementa contador de ticks"""
-        self.current_tick += 1
+    def intervene(self,
+                 params: Dict[str, np.ndarray],
+                 gradients: Dict[str, np.ndarray],
+                 learning_rate: float,
+                 metrics: StabilityMetrics,
+                 step: int) -> Tuple[Dict, Dict, float, str]:
+        """
+        Interviene si detecta inestabilidad.
+        
+        Args:
+            params: parámetros actuales
+            gradients: gradientes actuales
+            learning_rate: learning rate actual
+            metrics: métricas de estabilidad
+            step: paso actual
+        
+        Returns:
+            params: parámetros (posiblemente con rollback)
+            gradients: gradientes (posiblemente clipeados)
+            learning_rate: learning rate (posiblemente ajustado)
+            action: acción tomada
+        """
+        if metrics.is_stable:
+            return params, gradients, learning_rate, 'none'
+        
+        # ==========================================
+        # ESTRATEGIA DE INTERVENCIÓN
+        # ==========================================
+        
+        # Nivel 1: Clip gradientes (siempre)
+        gradients_clipped = self.clip_gradients(gradients)
+        action = 'clip_gradients'
+        
+        # Nivel 2: Reducir learning rate
+        if metrics.spectral_radius > self.config.max_spectral_radius * 1.5:
+            learning_rate = self.adjust_learning_rate(learning_rate, metrics)
+            action = 'clip_and_decay_lr'
+        
+        # Nivel 3: Rollback (solo si muy inestable)
+        if (metrics.spectral_radius > self.config.max_spectral_radius * 2.0 
+            and self.config.enable_rollback):
+            
+            checkpoint = self.rollback_to_stable()
+            if checkpoint is not None:
+                params = copy.deepcopy(checkpoint['params'])
+                learning_rate = learning_rate * 0.1  # Reducir agresivamente
+                action = 'rollback'
+        
+        return params, gradients_clipped, learning_rate, action
     
     def get_statistics(self) -> Dict:
-        """Retorna estadísticas de poda"""
-        if not self.prune_history:
+        """Retorna estadísticas de control de estabilidad"""
+        if not self.metrics_history:
             return {
-                'total_pruned': self.total_pruned,
-                'current_tick': self.current_tick
+                'total_checks': self.total_checks,
+                'instabilities_detected': self.instabilities_detected
             }
         
-        recent = self.prune_history[-10:]
+        recent = self.metrics_history[-100:]
         
         return {
-            'total_pruned': self.total_pruned,
-            'current_tick': self.current_tick,
-            'avg_pruned_per_cycle': np.mean([h['pruned_count'] for h in recent]),
-            'prune_cycles': len(self.prune_history),
-            'adaptive_usage_threshold': self.adaptive_usage_threshold,
-            'adaptive_impact_threshold': self.adaptive_impact_threshold
+            'total_checks': self.total_checks,
+            'instabilities_detected': self.instabilities_detected,
+            'rollbacks': self.rollbacks_performed,
+            'lr_decays': self.lr_decays_performed,
+            'avg_spectral_radius': np.mean([m.spectral_radius for m in recent]),
+            'max_spectral_radius': np.max([m.spectral_radius for m in recent]),
+            'avg_grad_norm': np.mean([m.grad_norm for m in recent]),
+            'stability_rate': np.mean([m.is_stable for m in recent]),
+            'checkpoints_saved': len(self.checkpoints)
         }
 
 
@@ -331,78 +372,81 @@ class AdaptivePruningSystem:
 # =========================
 
 if __name__ == "__main__":
-    print("=== Test de Sistema de Poda Adaptativa ===\n")
+    print("=== Test de Control de Estabilidad ===\n")
     
     np.random.seed(42)
     
-    # Crear sistema de poda
-    pruner = AdaptivePruningSystem(
-        config=PruningConfig(
-            strategy=PruningStrategy.COMPOSITE,
-            usage_threshold=0.1,
-            impact_threshold=0.15,
-            prune_percentage=0.2
+    # Crear controlador
+    controller = StabilityController(
+        config=StabilityConfig(
+            max_spectral_radius=1.0,
+            grad_clip_norm=1.0,
+            enable_rollback=True
         )
     )
     
     print("Configuración:")
-    print(f"  Estrategia: {pruner.config.strategy.value}")
-    print(f"  Umbral uso: {pruner.config.usage_threshold}")
-    print(f"  Umbral impacto: {pruner.config.impact_threshold}")
+    print(f"  Max spectral radius: {controller.config.max_spectral_radius}")
+    print(f"  Grad clip norm: {controller.config.grad_clip_norm}")
     
-    # Crear items simulados
-    print("\n--- Creando Items de Memoria Simulados ---")
+    # Simular secuencia de entrenamiento
+    print("\n--- Simulación de Entrenamiento ---\n")
     
-    items = []
-    for i in range(50):
-        item = MemoryItem(
-            id=f"item_{i}",
-            access_count=np.random.randint(0, 20),
-            last_access_tick=pruner.current_tick - np.random.randint(0, 30),
-            creation_tick=max(0, pruner.current_tick - np.random.randint(10, 50)),
-            impact_score=np.random.rand(),
-            size=1024
+    learning_rate = 0.01
+    params = {'W': np.random.randn(10, 10) * 0.1}
+    
+    for step in range(15):
+        # Matriz recurrente (con estabilidad variable)
+        if step < 5:
+            # Estable
+            W_rec = np.random.randn(20, 20) * 0.3
+        elif step < 10:
+            # Ligeramente inestable
+            W_rec = np.random.randn(20, 20) * 0.8
+        else:
+            # Muy inestable
+            W_rec = np.random.randn(20, 20) * 1.5
+        
+        # Gradientes simulados
+        gradients = {
+            'W': np.random.randn(10, 10) * (0.1 if step < 10 else 2.0)
+        }
+        
+        # Verificar estabilidad
+        metrics = controller.check_stability(
+            recurrent_matrix=W_rec,
+            gradients=gradients
         )
-        items.append(item)
+        
+        # Guardar checkpoint si estable
+        if metrics.is_stable and step % 2 == 0:
+            controller.save_checkpoint(params, step, metrics)
+        
+        # Intervenir si necesario
+        params, gradients, learning_rate, action = controller.intervene(
+            params, gradients, learning_rate, metrics, step
+        )
+        
+        status = "✓ STABLE" if metrics.is_stable else "✗ UNSTABLE"
+        
+        print(f"Step {step}: {status}")
+        print(f"  ρ(W) = {metrics.spectral_radius:.3f}")
+        print(f"  ‖∇‖ = {metrics.grad_norm:.3f}")
+        print(f"  η = {learning_rate:.5f}")
+        
+        if action != 'none':
+            print(f"  ⚠ Action: {action}")
+        
+        print()
     
-    print(f"Creados {len(items)} items")
+    # Estadísticas finales
+    print("\n--- Estadísticas Finales ---")
+    stats = controller.get_statistics()
     
-    # Avanzar tiempo
-    for _ in range(50):
-        pruner.tick()
-    
-    # Verificar si debe podar
-    print("\n--- Verificación de Poda ---")
-    should = pruner.should_prune(
-        memory_usage=len(items),
-        memory_capacity=60
-    )
-    print(f"¿Debe podar?: {should}")
-    
-    # Seleccionar candidatos
-    print("\n--- Selección de Candidatos ---")
-    candidates = pruner.select_candidates(items, n_to_prune=10)
-    
-    print(f"Candidatos seleccionados: {len(candidates)}")
-    print(f"IDs: {candidates[:5]}...")
-    
-    # Analizar candidatos
-    for cid in candidates[:3]:
-        item = next(i for i in items if i.id == cid)
-        age = pruner.current_tick - item.creation_tick
-        usage = item.access_count / (age + 1)
-        print(f"\n  {cid}:")
-        print(f"    Uso: {usage:.3f}")
-        print(f"    Impacto: {item.impact_score:.3f}")
-        print(f"    Accesos: {item.access_count}")
-    
-    # Estadísticas
-    print("\n--- Estadísticas ---")
-    stats = pruner.get_statistics()
     for key, value in stats.items():
         if isinstance(value, float):
             print(f"  {key}: {value:.3f}")
         else:
             print(f"  {key}: {value}")
     
-    print("\n✅ Sistema de Poda Adaptativa funcional - Olvido selectivo activo")
+    print("\n✅ Control de Estabilidad funcional")
