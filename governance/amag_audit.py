@@ -1,342 +1,366 @@
-# governance/amag_audit.py - AMA-G Auditor (Corteza Prefrontal Metacognitiva)
+# memory/semantic_matrix.py - Memoria Semántica (Neocorteza)
 """
-Implementa AMA-G: Auditoría, Metacognición y Gobernanza.
-Aₜ = Audit(zₜ, wₜ, Rₜ, aₜ, 𝓤ₜ, 𝓘ₜ)
+Implementa memoria semántica como matriz Mₜ con consolidación.
+Mₜ ← Update(Mₜ₋₁, zₜ; η)
 
-Si Aₜ = FAIL → Revise(aₜ) o a_safe
-
-Este módulo actúa como PFC: supervisa, verifica y corrige.
+Este módulo simula la neocorteza: almacena conocimiento abstracto
+y estructuras aprendidas a largo plazo.
 """
 
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
-from enum import Enum
-import sys
-import os
-
-# Importar MUEDP v2 (asumiendo que está disponible)
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
-class AuditResult(Enum):
-    """Resultado de la auditoría"""
-    PASS = "pass"           # Todo correcto, proceder
-    WARNING = "warning"     # Alerta pero no bloqueo
-    FAIL = "fail"          # Fallo crítico, no proceder
-    REVISED = "revised"    # Acción revisada y corregida
+from sklearn.decomposition import IncrementalPCA
+import pickle
 
 @dataclass
-class AuditReport:
-    """Reporte de auditoría"""
-    result: AuditResult
-    confidence: float           # [0,1] Confianza en la decisión
-    issues: List[str]           # Lista de problemas detectados
-    metrics: Dict[str, float]   # Métricas de auditoría
-    revised_action: Optional[np.ndarray]  # Acción corregida (si aplica)
-    safe_action: Optional[np.ndarray]     # Acción segura de respaldo
-
-@dataclass
-class GovernanceThresholds:
-    """Umbrales de gobernanza"""
-    min_confidence: float = 0.4        # Confianza mínima para proceder
-    max_surprise: float = 3.0          # Sorpresa máxima aceptable
-    max_uncertainty: float = 2.0       # Incertidumbre máxima (KL)
-    max_risk: float = 0.8              # Riesgo máximo (de MIEM)
-    consistency_threshold: float = 0.7  # Consistencia mínima
-
-class AMAGAuditor:
-    """
-    Auditor AMA-G: Corteza Prefrontal Metacognitiva.
+class SemanticConcept:
+    """Concepto semántico"""
+    id: str
+    prototype: np.ndarray      # Vector prototipo del concepto
+    instances: int             # Número de instancias vistas
+    variance: float           # Varianza del concepto
+    tags: List[str]
     
-    Funciones:
-    1. Verificar consistencia interna
-    2. Detectar contradicciones
-    3. Evaluar confianza de la decisión
-    4. Prevenir alucinaciones/errores
-    5. Forzar modo seguro cuando sea necesario
+class SemanticMemoryMatrix:
+    """
+    Memoria Semántica basada en Matriz.
+    
+    Funcionalidades:
+    1. Consolidación: abstracta patrones de episodios
+    2. Prototipado: encuentra centros de clusters
+    3. Generalización: comprime información redundante
+    4. Recuperación: accede a conocimiento estructurado
+    5. Actualización incremental: aprende continuamente
     """
     
-    def __init__(self, thresholds: Optional[GovernanceThresholds] = None):
+    def __init__(self,
+                 dim_state: int,
+                 max_concepts: int = 1000,
+                 learning_rate: float = 0.01,
+                 compression_dim: Optional[int] = None):
         """
         Args:
-            thresholds: umbrales de gobernanza
+            dim_state: dimensión del estado z
+            max_concepts: número máximo de conceptos
+            learning_rate: η para actualización
+            compression_dim: dimensión comprimida (None = sin compresión)
         """
-        self.thresholds = thresholds or GovernanceThresholds()
-        self.audit_history = []
+        self.dim_state = dim_state
+        self.max_concepts = max_concepts
+        self.learning_rate = learning_rate
+        self.compression_dim = compression_dim or dim_state
         
-        # Acción segura por defecto (no hacer nada)
-        self.default_safe_action = None
+        # Matriz de conceptos [n_concepts × dim_state]
+        self.M = np.zeros((max_concepts, dim_state))
+        self.n_concepts = 0
         
-        # Contadores
-        self.total_audits = 0
-        self.passes = 0
-        self.warnings = 0
-        self.fails = 0
-        self.revisions = 0
+        # Metadata de conceptos
+        self.concepts: Dict[int, SemanticConcept] = {}
+        
+        # Compresión (PCA incremental)
+        if compression_dim < dim_state:
+            self.pca = IncrementalPCA(n_components=compression_dim)
+            self.pca_fitted = False
+        else:
+            self.pca = None
+            self.pca_fitted = False
+        
+        # Estadísticas
+        self.total_updates = 0
+        self.total_consolidations = 0
     
-    def audit(self,
-              z: np.ndarray,                    # Estado cortical
-              w: Optional[np.ndarray],          # Memoria de trabajo
-              R: Optional[List],                # Memoria episódica recuperada
-              action_candidate: Dict,           # Acción propuesta
-              surprise: float,                  # 𝓤ₜ
-              kl_divergence: Optional[float] = None  # 𝓘ₜ
-              ) -> AuditReport:
+    def consolidate(self,
+                   state: np.ndarray,
+                   tags: Optional[List[str]] = None,
+                   threshold: float = 0.8) -> Tuple[int, bool]:
         """
-        Audita el sistema completo antes de ejecutar una acción.
+        Consolida un estado en la memoria semántica.
+        
+        Estrategia:
+        1. Si existe concepto similar → actualizar prototipo
+        2. Si no existe → crear nuevo concepto
         
         Args:
-            z: estado latente
-            w: memoria de trabajo
-            R: episodios recuperados
-            action_candidate: acción propuesta con metadata
-            surprise: sorpresa actual (error predicción)
-            kl_divergence: divergencia KL (cambio de creencias)
+            state: estado cortical zₜ a consolidar
+            tags: etiquetas semánticas
+            threshold: umbral de similaridad para merge
         
         Returns:
-            AuditReport: resultado de la auditoría
+            (concept_id, is_new): ID del concepto y si es nuevo
         """
-        self.total_audits += 1
+        self.total_updates += 1
         
-        issues = []
-        metrics = {}
+        # Comprimir si es necesario
+        if self.pca is not None:
+            state_compressed = self._compress_state(state)
+        else:
+            state_compressed = state
         
-        # === 1. VERIFICACIÓN DE SORPRESA ===
-        metrics['surprise'] = surprise
-        if surprise > self.thresholds.max_surprise:
-            issues.append(f"Sorpresa excesiva: {surprise:.3f} > {self.thresholds.max_surprise}")
+        # Buscar concepto similar
+        if self.n_concepts > 0:
+            similarities = self._compute_similarities(state_compressed)
+            best_idx = np.argmax(similarities)
+            best_sim = similarities[best_idx]
+            
+            # Si hay match, actualizar
+            if best_sim > threshold:
+                self._update_concept(best_idx, state_compressed, tags)
+                return best_idx, False
         
-        # === 2. VERIFICACIÓN DE INCERTIDUMBRE ===
-        if kl_divergence is not None:
-            metrics['kl_divergence'] = kl_divergence
-            if kl_divergence > self.thresholds.max_uncertainty:
-                issues.append(f"Incertidumbre alta: KL={kl_divergence:.3f}")
-        
-        # === 3. VERIFICACIÓN DE RIESGO ===
-        miem = action_candidate.get('miem', {})
-        risk = miem.get('risk', 0.0)
-        metrics['risk'] = risk
-        
-        if risk > self.thresholds.max_risk:
-            issues.append(f"Riesgo excesivo: {risk:.3f} > {self.thresholds.max_risk}")
-        
-        # === 4. CONSISTENCIA INTERNA ===
-        consistency = self._check_consistency(z, action_candidate)
-        metrics['consistency'] = consistency
-        
-        if consistency < self.thresholds.consistency_threshold:
-            issues.append(f"Inconsistencia detectada: {consistency:.3f}")
-        
-        # === 5. VERIFICACIÓN DE MAGNITUD ===
-        action = action_candidate['action']
-        action_magnitude = np.linalg.norm(action)
-        metrics['action_magnitude'] = action_magnitude
-        
-        # Detectar acciones extremas
-        if action_magnitude > 5.0:
-            issues.append(f"Acción de magnitud extrema: {action_magnitude:.3f}")
-        
-        # === 6. CONFIANZA COMPUESTA ===
-        confidence = self._compute_confidence(
-            surprise=surprise,
-            risk=risk,
-            consistency=consistency,
-            action_magnitude=action_magnitude
-        )
-        metrics['confidence'] = confidence
-        
-        # === 7. DECISIÓN DE AUDITORÍA ===
-        result, revised_action = self._make_decision(
-            issues=issues,
-            confidence=confidence,
-            action_candidate=action_candidate,
-            metrics=metrics
-        )
-        
-        # === 8. GENERAR REPORTE ===
-        report = AuditReport(
-            result=result,
-            confidence=confidence,
-            issues=issues,
-            metrics=metrics,
-            revised_action=revised_action,
-            safe_action=self._get_safe_action(z)
-        )
-        
-        # Actualizar contadores
-        if result == AuditResult.PASS:
-            self.passes += 1
-        elif result == AuditResult.WARNING:
-            self.warnings += 1
-        elif result == AuditResult.FAIL:
-            self.fails += 1
-        elif result == AuditResult.REVISED:
-            self.revisions += 1
-        
-        # Guardar en historial
-        self.audit_history.append(report)
-        if len(self.audit_history) > 1000:
-            self.audit_history.pop(0)
-        
-        return report
+        # Crear nuevo concepto
+        if self.n_concepts < self.max_concepts:
+            concept_id = self._create_concept(state_compressed, tags)
+            self.total_consolidations += 1
+            return concept_id, True
+        else:
+            # Memoria llena, reemplazar el menos usado
+            concept_id = self._replace_least_used(state_compressed, tags)
+            return concept_id, False
     
-    def _check_consistency(self, z: np.ndarray, action_candidate: Dict) -> float:
-        """
-        Verifica consistencia entre estado y acción propuesta.
+    def _compress_state(self, state: np.ndarray) -> np.ndarray:
+        """Comprime estado usando PCA incremental"""
+        if not self.pca_fitted:
+            # Primera vez: fit con batch inicial
+            self.pca.partial_fit(state.reshape(1, -1))
+            self.pca_fitted = True
         
-        Consistencia alta = acción alineada con estado actual
-        Consistencia baja = acción contradice el estado
-        """
-        action = action_candidate['action']
-        
-        # Proyección del estado en espacio de acciones (simplificado)
-        # En producción: usar modelo forward
-        
-        # Heurística: magnitud relativa
-        z_norm = np.linalg.norm(z) + 1e-9
-        a_norm = np.linalg.norm(action) + 1e-9
-        
-        # Estados pequeños → acciones pequeñas
-        # Estados grandes → acciones pueden ser grandes
-        ratio = min(a_norm / z_norm, z_norm / a_norm)
-        
-        # Normalizar a [0, 1]
-        consistency = np.exp(-abs(np.log(ratio + 1e-9)))
-        
-        return float(np.clip(consistency, 0.0, 1.0))
+        # Transform
+        compressed = self.pca.transform(state.reshape(1, -1))
+        return compressed.flatten()
     
-    def _compute_confidence(self,
-                           surprise: float,
-                           risk: float,
-                           consistency: float,
-                           action_magnitude: float) -> float:
-        """
-        Calcula confianza compuesta de la decisión.
+    def _compute_similarities(self, state: np.ndarray) -> np.ndarray:
+        """Calcula similaridad con todos los conceptos"""
+        active_concepts = self.M[:self.n_concepts]
         
-        Alta confianza = baja sorpresa + bajo riesgo + alta consistencia + magnitud razonable
-        """
-        # Normalizar surprise [0, inf) -> [0, 1]
-        surprise_norm = 1.0 - np.tanh(surprise / self.thresholds.max_surprise)
+        # Similaridad coseno
+        norms = np.linalg.norm(active_concepts, axis=1, keepdims=True) + 1e-9
+        state_norm = np.linalg.norm(state) + 1e-9
         
-        # Risk ya está en [0, 1]
-        safety = 1.0 - risk
+        similarities = (active_concepts @ state) / (norms.flatten() * state_norm)
         
-        # Magnitude penalty
-        magnitude_ok = 1.0 - np.tanh(action_magnitude / 5.0)
+        return similarities
+    
+    def _create_concept(self, state: np.ndarray, tags: Optional[List[str]]) -> int:
+        """Crea nuevo concepto"""
+        concept_id = self.n_concepts
         
-        # Combinación ponderada
-        confidence = (
-            0.3 * surprise_norm +
-            0.3 * safety +
-            0.3 * consistency +
-            0.1 * magnitude_ok
+        # Almacenar en matriz
+        self.M[concept_id] = state
+        
+        # Crear metadata
+        self.concepts[concept_id] = SemanticConcept(
+            id=f"concept_{concept_id}",
+            prototype=state.copy(),
+            instances=1,
+            variance=0.0,
+            tags=tags or []
         )
         
-        return float(np.clip(confidence, 0.0, 1.0))
+        self.n_concepts += 1
+        return concept_id
     
-    def _make_decision(self,
-                      issues: List[str],
-                      confidence: float,
-                      action_candidate: Dict,
-                      metrics: Dict) -> Tuple[AuditResult, Optional[np.ndarray]]:
+    def _update_concept(self, concept_id: int, state: np.ndarray, tags: Optional[List[str]]):
+        """Actualiza concepto existente con nueva instancia"""
+        concept = self.concepts[concept_id]
+        
+        # Media móvil exponencial del prototipo
+        alpha = self.learning_rate
+        old_prototype = self.M[concept_id]
+        new_prototype = (1 - alpha) * old_prototype + alpha * state
+        
+        # Actualizar matriz
+        self.M[concept_id] = new_prototype
+        
+        # Actualizar variance (aproximación)
+        diff = np.linalg.norm(state - old_prototype)
+        concept.variance = (1 - alpha) * concept.variance + alpha * diff**2
+        
+        # Actualizar metadata
+        concept.instances += 1
+        concept.prototype = new_prototype
+        
+        if tags:
+            concept.tags = list(set(concept.tags + tags))
+    
+    def _replace_least_used(self, state: np.ndarray, tags: Optional[List[str]]) -> int:
+        """Reemplaza el concepto menos usado"""
+        # Encontrar concepto con menos instancias
+        least_used_id = min(self.concepts.keys(), 
+                           key=lambda k: self.concepts[k].instances)
+        
+        # Reemplazar
+        self.M[least_used_id] = state
+        self.concepts[least_used_id] = SemanticConcept(
+            id=f"concept_{least_used_id}",
+            prototype=state.copy(),
+            instances=1,
+            variance=0.0,
+            tags=tags or []
+        )
+        
+        return least_used_id
+    
+    def retrieve(self,
+                query: np.ndarray,
+                top_k: int = 5,
+                min_similarity: float = 0.5) -> List[Tuple[int, float, SemanticConcept]]:
         """
-        Toma decisión de auditoría basada en issues y confianza.
+        Recupera conceptos semánticos relevantes.
+        
+        Args:
+            query: estado de consulta
+            top_k: número de conceptos a recuperar
+            min_similarity: similaridad mínima
         
         Returns:
-            (result, revised_action)
+            List de (concept_id, similarity, concept)
         """
-        n_issues = len(issues)
+        if self.n_concepts == 0:
+            return []
         
-        # Caso 1: Sin problemas y alta confianza → PASS
-        if n_issues == 0 and confidence >= self.thresholds.min_confidence:
-            return AuditResult.PASS, None
+        # Comprimir query si es necesario
+        if self.pca is not None and self.pca_fitted:
+            query_compressed = self._compress_state(query)
+        else:
+            query_compressed = query
         
-        # Caso 2: Pocos problemas y confianza aceptable → WARNING
-        if n_issues <= 1 and confidence >= self.thresholds.min_confidence * 0.8:
-            return AuditResult.WARNING, None
+        # Calcular similaridades
+        similarities = self._compute_similarities(query_compressed)
         
-        # Caso 3: Problemas moderados → REVISED (intentar corregir)
-        if n_issues <= 2 and confidence >= self.thresholds.min_confidence * 0.5:
-            revised = self._revise_action(action_candidate, issues, metrics)
-            return AuditResult.REVISED, revised
+        # Filtrar por umbral y ordenar
+        results = []
+        for i in range(self.n_concepts):
+            if similarities[i] >= min_similarity:
+                results.append((i, similarities[i], self.concepts[i]))
         
-        # Caso 4: Problemas críticos → FAIL
-        return AuditResult.FAIL, None
+        results.sort(key=lambda x: x[1], reverse=True)
+        
+        return results[:top_k]
     
-    def _revise_action(self,
-                      action_candidate: Dict,
-                      issues: List[str],
-                      metrics: Dict) -> np.ndarray:
-        """
-        Revisa y corrige la acción propuesta.
-        
-        Estrategias:
-        - Si riesgo alto → reducir magnitud
-        - Si sorpresa alta → acción más conservadora
-        - Si inconsistencia → ajustar dirección
-        """
-        action = action_candidate['action'].copy()
-        
-        # Estrategia 1: Reducir magnitud si hay riesgo
-        if metrics.get('risk', 0) > self.thresholds.max_risk:
-            scale = self.thresholds.max_risk / (metrics['risk'] + 1e-9)
-            action = action * scale
-        
-        # Estrategia 2: Suavizar si alta sorpresa
-        if metrics.get('surprise', 0) > self.thresholds.max_surprise:
-            damping = 0.5
-            action = action * damping
-        
-        # Estrategia 3: Clip extremos
-        action = np.clip(action, -3.0, 3.0)
-        
-        return action
+    def get_concept_by_tag(self, tag: str) -> List[Tuple[int, SemanticConcept]]:
+        """Recupera conceptos por tag"""
+        results = []
+        for cid, concept in self.concepts.items():
+            if tag in concept.tags:
+                results.append((cid, concept))
+        return results
     
-    def _get_safe_action(self, z: np.ndarray) -> np.ndarray:
+    def merge_similar_concepts(self, threshold: float = 0.95):
         """
-        Genera acción segura de respaldo.
+        Fusiona conceptos muy similares para reducir redundancia.
         
-        Por defecto: acción nula o mínima
+        Args:
+            threshold: umbral de similaridad para merge
         """
-        if self.default_safe_action is not None:
-            return self.default_safe_action
+        if self.n_concepts < 2:
+            return
         
-        # Acción conservadora: pequeño movimiento hacia estado nominal
-        safe = -0.1 * z / (np.linalg.norm(z) + 1e-9)
+        merged = []
         
-        # Límite de magnitud
-        return np.clip(safe, -0.5, 0.5)
+        for i in range(self.n_concepts):
+            if i in merged:
+                continue
+            
+            for j in range(i + 1, self.n_concepts):
+                if j in merged:
+                    continue
+                
+                # Calcular similaridad
+                sim = np.dot(self.M[i], self.M[j]) / (
+                    np.linalg.norm(self.M[i]) * np.linalg.norm(self.M[j]) + 1e-9
+                )
+                
+                if sim > threshold:
+                    # Fusionar j en i
+                    concept_i = self.concepts[i]
+                    concept_j = self.concepts[j]
+                    
+                    total_instances = concept_i.instances + concept_j.instances
+                    weight_i = concept_i.instances / total_instances
+                    weight_j = concept_j.instances / total_instances
+                    
+                    # Nuevo prototipo ponderado
+                    self.M[i] = weight_i * self.M[i] + weight_j * self.M[j]
+                    
+                    # Actualizar metadata
+                    concept_i.instances = total_instances
+                    concept_i.tags = list(set(concept_i.tags + concept_j.tags))
+                    concept_i.variance = max(concept_i.variance, concept_j.variance)
+                    
+                    merged.append(j)
+        
+        # Compactar matriz eliminando conceptos fusionados
+        if merged:
+            self._compact_matrix(merged)
+    
+    def _compact_matrix(self, removed_ids: List[int]):
+        """Compacta la matriz eliminando conceptos"""
+        removed_ids = sorted(removed_ids, reverse=True)
+        
+        for rid in removed_ids:
+            # Mover conceptos posteriores
+            if rid < self.n_concepts - 1:
+                self.M[rid:self.n_concepts-1] = self.M[rid+1:self.n_concepts]
+            
+            # Eliminar del dict
+            del self.concepts[rid]
+            
+            # Reindexar conceptos posteriores
+            for cid in range(rid, self.n_concepts):
+                if cid + 1 in self.concepts:
+                    self.concepts[cid] = self.concepts[cid + 1]
+                    del self.concepts[cid + 1]
+            
+            self.n_concepts -= 1
     
     def get_statistics(self) -> Dict:
-        """Retorna estadísticas de auditoría"""
-        if self.total_audits == 0:
-            return {}
+        """Retorna estadísticas de la memoria"""
+        if self.n_concepts == 0:
+            return {
+                'total_concepts': 0,
+                'total_updates': self.total_updates,
+                'total_consolidations': self.total_consolidations
+            }
+        
+        variances = [c.variance for c in self.concepts.values()]
+        instances = [c.instances for c in self.concepts.values()]
         
         return {
-            'total_audits': self.total_audits,
-            'pass_rate': self.passes / self.total_audits,
-            'warning_rate': self.warnings / self.total_audits,
-            'fail_rate': self.fails / self.total_audits,
-            'revision_rate': self.revisions / self.total_audits,
-            'avg_confidence': np.mean([r.confidence for r in self.audit_history[-100:]])
+            'total_concepts': self.n_concepts,
+            'total_updates': self.total_updates,
+            'total_consolidations': self.total_consolidations,
+            'avg_variance': np.mean(variances),
+            'avg_instances': np.mean(instances),
+            'memory_usage_pct': self.n_concepts / self.max_concepts * 100,
+            'compression_enabled': self.pca is not None
         }
     
-    def adapt_thresholds(self, performance_feedback: float):
-        """
-        Adapta umbrales basándose en feedback de rendimiento.
+    def save(self, filepath: str):
+        """Guarda la memoria en disco"""
+        data = {
+            'M': self.M,
+            'n_concepts': self.n_concepts,
+            'concepts': self.concepts,
+            'config': {
+                'dim_state': self.dim_state,
+                'max_concepts': self.max_concepts,
+                'learning_rate': self.learning_rate,
+                'compression_dim': self.compression_dim
+            }
+        }
         
-        Args:
-            performance_feedback: [0,1] - qué tan bien funcionó el sistema
-        """
-        # Si el sistema está funcionando mal, ser más estrictos
-        if performance_feedback < 0.5:
-            self.thresholds.min_confidence = min(0.8, self.thresholds.min_confidence * 1.1)
-            self.thresholds.max_risk = max(0.5, self.thresholds.max_risk * 0.9)
+        with open(filepath, 'wb') as f:
+            pickle.dump(data, f)
+    
+    def load(self, filepath: str):
+        """Carga la memoria desde disco"""
+        with open(filepath, 'rb') as f:
+            data = pickle.load(f)
         
-        # Si funciona bien, podemos relajar un poco
-        elif performance_feedback > 0.8:
-            self.thresholds.min_confidence = max(0.3, self.thresholds.min_confidence * 0.95)
-            self.thresholds.max_risk = min(0.9, self.thresholds.max_risk * 1.05)
+        self.M = data['M']
+        self.n_concepts = data['n_concepts']
+        self.concepts = data['concepts']
 
 
 # =========================
@@ -344,89 +368,72 @@ class AMAGAuditor:
 # =========================
 
 if __name__ == "__main__":
-    print("=== Test de AMA-G Auditor (Metacognición) ===\n")
+    print("=== Test de Memoria Semántica (Consolidación) ===\n")
     
     np.random.seed(42)
     
-    # Crear auditor
-    auditor = AMAGAuditor(
-        thresholds=GovernanceThresholds(
-            min_confidence=0.5,
-            max_surprise=2.5,
-            max_risk=0.7
-        )
+    # Crear memoria
+    memory = SemanticMemoryMatrix(
+        dim_state=32,
+        max_concepts=50,
+        learning_rate=0.05,
+        compression_dim=16
     )
     
-    print("Umbrales de gobernanza:")
-    print(f"  Confianza mínima: {auditor.thresholds.min_confidence}")
-    print(f"  Sorpresa máxima: {auditor.thresholds.max_surprise}")
-    print(f"  Riesgo máximo: {auditor.thresholds.max_risk}")
+    print("Configuración:")
+    print(f"  Dim estado: {memory.dim_state}")
+    print(f"  Dim comprimida: {memory.compression_dim}")
+    print(f"  Capacidad: {memory.max_concepts} conceptos")
+    print(f"  Learning rate: {memory.learning_rate}")
     
-    # Estado simulado
-    z = np.random.randn(32) * 0.5
-    w = np.random.randn(16) * 0.3
+    # Consolidar estados simulados
+    print("\n--- Consolidación de Estados ---")
     
-    # Casos de prueba
-    test_cases = [
-        {
-            'name': 'Acción segura',
-            'action': np.random.randn(16) * 0.5,
-            'miem': {'risk': 0.3, 'efficiency': 0.8},
-            'surprise': 0.5
-        },
-        {
-            'name': 'Acción arriesgada',
-            'action': np.random.randn(16) * 2.0,
-            'miem': {'risk': 0.85, 'efficiency': 0.9},
-            'surprise': 1.5
-        },
-        {
-            'name': 'Sorpresa alta',
-            'action': np.random.randn(16) * 0.8,
-            'miem': {'risk': 0.5, 'efficiency': 0.7},
-            'surprise': 3.5
-        }
+    # Crear 3 clusters de estados similares
+    cluster_centers = [
+        np.random.randn(32) * 2,
+        np.random.randn(32) * 2 + 5,
+        np.random.randn(32) * 2 - 5
     ]
     
-    print("\n--- Auditorías ---")
+    for i in range(30):
+        cluster_id = i % 3
+        state = cluster_centers[cluster_id] + np.random.randn(32) * 0.5
+        tags = [f'cluster_{cluster_id}', f'tag_{i % 5}']
+        
+        concept_id, is_new = memory.consolidate(state, tags=tags, threshold=0.8)
+        
+        if i < 5 or is_new:
+            status = "NUEVO" if is_new else "actualizado"
+            print(f"  Estado {i+1}: Concepto {concept_id} {status}")
     
-    for test in test_cases:
-        action_candidate = {
-            'id': test['name'],
-            'action': test['action'],
-            'miem': test['miem']
-        }
-        
-        report = auditor.audit(
-            z=z,
-            w=w,
-            R=None,
-            action_candidate=action_candidate,
-            surprise=test['surprise'],
-            kl_divergence=0.5
-        )
-        
-        print(f"\n{test['name']}:")
-        print(f"  Resultado: {report.result.value}")
-        print(f"  Confianza: {report.confidence:.3f}")
-        
-        if report.issues:
-            print(f"  Issues detectados:")
-            for issue in report.issues:
-                print(f"    - {issue}")
-        
-        if report.result == AuditResult.REVISED:
-            print(f"  ✓ Acción revisada (magnitud: {np.linalg.norm(report.revised_action):.3f})")
-        elif report.result == AuditResult.FAIL:
-            print(f"  ✗ Acción bloqueada - usar acción segura")
+    print(f"\nTotal de conceptos creados: {memory.n_concepts}")
+    
+    # Recuperar conceptos
+    print("\n--- Recuperación de Conceptos ---")
+    query = cluster_centers[0] + np.random.randn(32) * 0.3
+    
+    results = memory.retrieve(query, top_k=3, min_similarity=0.5)
+    
+    print(f"Query cerca del cluster 0")
+    print(f"Conceptos recuperados:")
+    for i, (cid, sim, concept) in enumerate(results):
+        print(f"  {i+1}. Concepto {cid}: sim={sim:.3f}, instancias={concept.instances}")
+        print(f"     Tags: {concept.tags[:3]}")
+    
+    # Merge de conceptos similares
+    print("\n--- Merge de Conceptos Similares ---")
+    print(f"Conceptos antes del merge: {memory.n_concepts}")
+    memory.merge_similar_concepts(threshold=0.9)
+    print(f"Conceptos después del merge: {memory.n_concepts}")
     
     # Estadísticas
-    print("\n--- Estadísticas de Auditoría ---")
-    stats = auditor.get_statistics()
+    print("\n--- Estadísticas ---")
+    stats = memory.get_statistics()
     for key, value in stats.items():
         if isinstance(value, float):
-            print(f"  {key}: {value:.2%}" if 'rate' in key else f"  {key}: {value:.3f}")
+            print(f"  {key}: {value:.2f}")
         else:
             print(f"  {key}: {value}")
     
-    print("\n✅ Auditor AMA-G funcional - Corteza Prefrontal Metacognitiva activa")
+    print("\n✅ Memoria Semántica funcional - Neocorteza activa")
