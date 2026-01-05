@@ -13,12 +13,14 @@ from datetime import datetime
 import json
 
 from .database import get_db, User, Project, DebugSession, ContentEntry
-from .auth import router as auth_router, get_current_user_from_session
+from .auth import router as auth_router
+from .plugin_system import router as plugin_router, get_current_user_from_session
 
 app = FastAPI(title="AMA-Intent Personal Dashboard v2")
 
 # Incluir rutas de autenticación
 app.include_router(auth_router)
+app.include_router(plugin_router)
 
 # Mount static files
 static_dir = Path("static")

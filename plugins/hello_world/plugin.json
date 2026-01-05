@@ -1,0 +1,10 @@
+{
+  "name": "Hello World",
+  "version": "1.0.0",
+  "author": "Manus IA",
+  "description": "Un plugin de prueba para validar el sistema de plugins v2.1",
+  "plugin_type": "utility",
+  "entry_point": "hello_world.main.PluginMain",
+  "dependencies": [],
+  "min_dashboard_version": "2.0.0"
+}

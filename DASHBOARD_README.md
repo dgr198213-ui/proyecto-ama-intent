@@ -80,3 +80,19 @@ proyecto-ama-intent/
 1. Implementar el panel de Analytics completo.
 2. Finalizar los conectores de integración con GitHub.
 3. Expandir el soporte multilenguaje en el Debug Assistant.
+
+## Actualización v2.1: Ecosistema de Plugins e Integraciones
+
+### 🔌 Sistema de Plugins
+El Dashboard ahora soporta la carga dinámica de plugins. Puedes extender las capacidades del sistema sin modificar el núcleo.
+- **Ubicación**: Carpeta `plugins/`
+- **Estructura**: Cada plugin debe tener un `plugin.json` y un punto de entrada en Python.
+- **API**: Los plugins pueden acceder a servicios de base de datos, analíticas y herramientas de IA.
+
+### 🐙 Integración con GitHub
+Conector inicial para sincronizar proyectos y automatizar flujos de trabajo con repositorios de GitHub.
+- **Configuración**: Requiere `GITHUB_TOKEN` en el archivo `.env`.
+- **Funciones**: Listado de repositorios, gestión de eventos y sincronización de código.
+
+### 🔔 Sistema de Notificaciones (Beta)
+Base para notificaciones en tiempo real dentro del dashboard para eventos del sistema y tareas completadas.
