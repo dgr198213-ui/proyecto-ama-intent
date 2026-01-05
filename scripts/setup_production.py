@@ -1,4 +1,3 @@
-```python
 #!/usr/bin/env python3
 """
 Script de configuración segura para producción
@@ -238,4 +237,3 @@ def create_production_env():
     
     print(f"📄 Ejemplo seguro creado: {safe_file}")
     
-    return env_config
