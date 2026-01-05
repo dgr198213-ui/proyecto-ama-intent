@@ -1,9 +1,38 @@
-# AMA-Intent Personal Dashboard Requirements
+# AMA-Intent Personal Dashboard Requirements v2
+
+# Web Framework
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 jinja2>=3.1.2
 python-multipart>=0.0.6
-pydantic>=2.4.0
+pydantic[email]>=2.4.0
+
+# Base de datos
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# Autenticación
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# Exportación
+reportlab>=4.0.0
+pyyaml>=6.0
+
+# API y documentación
+swagger-ui-bundle>=0.0.9
+
+# Integraciones
+requests>=2.31.0
+aiohttp>=3.9.0
+
+# Análisis de código adicional
+tree-sitter>=0.20.0
+tree-sitter-languages>=1.5.0
+
+# Utilidades
+python-dotenv>=1.0.0
+# redis>=5.0.0  # opcional para cache
 
 # Existing AMA-Intent dependencies
 numpy>=1.24.0
