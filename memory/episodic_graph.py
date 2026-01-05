@@ -563,6 +563,39 @@ class BrainGUI:
             'error': self.colors['error']
         }
         
+        color = colors.get(state, 'gray')
+        
         if phase == 'all':
             for indicator in self.phase_indicators.values():
-                indicator.config(f
+                indicator.config(fg=color)
+        elif phase in self.phase_indicators:
+            self.phase_indicators[phase].config(fg=color)
+
+    def log_event(self, message: str):
+        """Añade evento al log"""
+        timestamp = time.strftime("%H:%M:%S")
+        self.event_log.config(state='normal')
+        self.event_log.insert('end', f"[{timestamp}] {message}\n")
+        self.event_log.see('end')
+        self.event_log.config(state='disabled')
+
+    def show_statistics(self):
+        messagebox.showinfo("Estadísticas", "Funcionalidad en desarrollo")
+
+    def force_sleep(self):
+        if self.system:
+            self.system.brain.sleep()
+            self.log_event("💤 Sueño forzado ejecutado")
+
+    def clear_chat(self):
+        self.chat_display.config(state='normal')
+        self.chat_display.delete('1.0', 'end')
+        self.chat_display.config(state='disabled')
+
+    def show_config(self):
+        messagebox.showinfo("Configuración", "Funcionalidad en desarrollo")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = BrainGUI(root)
+    root.mainloop()
