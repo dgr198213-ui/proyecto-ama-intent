@@ -1,480 +1,340 @@
-# learning/loss.py - Función de Pérdida Compuesta
+# cli_interactive.py - Interfaz de Consola Interactiva
 """
-Implementa la función de pérdida total del cerebro:
-ℒₜ = ℒpred + ℒmem + ℒpol + ℒgov
+CLI interactiva para chatear con la IA local gobernada.
 
-Cada componente penaliza diferentes aspectos del rendimiento.
+Uso:
+    python cli_interactive.py
+
+Comandos especiales:
+    /help      - Muestra ayuda
+    /stats     - Muestra estadísticas
+    /config    - Muestra configuración
+    /sleep     - Fuerza ciclo de sueño
+    /reset     - Resetea el cerebro
+    /exit      - Sale del programa
 """
 
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
+import sys
+import os
+from typing import Optional
+import readline  # Para historial de comandos
 
-@dataclass
-class LossWeights:
-    """Pesos de cada componente de pérdida"""
-    prediction: float = 1.0      # ℒpred
-    memory: float = 0.5          # ℒmem
-    policy: float = 0.8          # ℒpol
-    governance: float = 0.3      # ℒgov
+# Añadir path del proyecto
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-class CompositeLoss:
+from ollama_brain_interface import GovernedLocalLLM, LLMConfig, CompleteBrainConfig
+
+class InteractiveCLI:
     """
-    Función de Pérdida Compuesta para el cerebro.
-    
-    Componentes:
-    1. ℒpred: Error de predicción (modelo del mundo)
-    2. ℒmem: Pérdida de memoria (retrieval, consolidación)
-    3. ℒpol: Pérdida de política (decisión subóptima)
-    4. ℒgov: Pérdida de gobernanza (violaciones AMA-G)
+    Interfaz de línea de comandos interactiva.
     """
     
-    def __init__(self, weights: Optional[LossWeights] = None):
-        """
-        Args:
-            weights: ponderaciones de cada componente
-        """
-        self.weights = weights or LossWeights()
-        
-        # Historial
-        self.loss_history = []
+    def __init__(self):
+        """Inicializa la CLI"""
+        self.system: Optional[GovernedLocalLLM] = None
+        self.running = False
     
-    def compute_prediction_loss(self,
-                                y_predicted: np.ndarray,
-                                y_actual: np.ndarray,
-                                loss_type: str = 'mse') -> float:
+    def print_banner(self):
+        """Imprime banner de bienvenida"""
+        print("\n" + "="*70)
+        print("🧠 IA LOCAL GOBERNADA - Chat Interactivo")
+        print("   Cerebro Artificial + Ollama/LM Studio")
+        print("="*70)
+        print("\nEscribe /help para ver comandos disponibles\n")
+    
+    def print_help(self):
+        """Muestra ayuda"""
+        print("\n" + "="*70)
+        print("📖 COMANDOS DISPONIBLES")
+        print("="*70)
+        print("  /help      - Muestra esta ayuda")
+        print("  /stats     - Muestra estadísticas del sistema")
+        print("  /config    - Muestra configuración actual")
+        print("  /sleep     - Fuerza un ciclo de sueño/consolidación")
+        print("  /reset     - Resetea el cerebro (borra memoria)")
+        print("  /history   - Muestra historial de conversación")
+        print("  /export    - Exporta estadísticas a JSON")
+        print("  /exit      - Sale del programa")
+        print("="*70 + "\n")
+    
+    def print_stats(self):
+        """Muestra estadísticas"""
+        if not self.system:
+            print("⚠ Sistema no inicializado")
+            return
+        
+        stats = self.system.get_statistics()
+        
+        print("\n" + "="*70)
+        print("📊 ESTADÍSTICAS DEL SISTEMA")
+        print("="*70)
+        print(f"\n💬 Conversación:")
+        print(f"  Total de mensajes: {stats['total_conversations']}")
+        print(f"  Tasa de aprobación: {stats['approval_rate']:.1%}")
+        
+        brain_stats = stats['brain_stats']
+        print(f"\n🧠 Cerebro:")
+        print(f"  Ticks ejecutados: {brain_stats['total_ticks']}")
+        print(f"  Episodios en memoria: {brain_stats['episodic_memory']['total_episodes']}")
+        print(f"  Conceptos semánticos: {brain_stats['semantic_memory']['total_concepts']}")
+        print(f"  Ciclos de sueño: {brain_stats['sleep']['total_cycles']}")
+        
+        auditor = brain_stats.get('auditor', {})
+        if auditor:
+            print(f"\n🛡️ Gobernanza (AMA-G):")
+            print(f"  Auditorías totales: {auditor.get('total_audits', 0)}")
+            print(f"  Tasa de aprobación: {auditor.get('pass_rate', 0):.1%}")
+            print(f"  Tasa de revisión: {auditor.get('revision_rate', 0):.1%}")
+            print(f"  Tasa de fallo: {auditor.get('fail_rate', 0):.1%}")
+        
+        print("="*70 + "\n")
+    
+    def print_config(self):
+        """Muestra configuración"""
+        if not self.system:
+            print("⚠ Sistema no inicializado")
+            return
+        
+        print("\n" + "="*70)
+        print("⚙️ CONFIGURACIÓN")
+        print("="*70)
+        print(f"\n🤖 LLM:")
+        print(f"  Provider: {self.system.llm_config.provider}")
+        print(f"  URL: {self.system.llm_config.base_url}")
+        print(f"  Modelo: {self.system.llm_config.model}")
+        print(f"  Temperature: {self.system.llm_config.temperature}")
+        print(f"  Max tokens: {self.system.llm_config.max_tokens}")
+        
+        print(f"\n🧠 Cerebro:")
+        print(f"  Dim observación: {self.system.brain.config.dim_observation}")
+        print(f"  Dim latente: {self.system.brain.config.dim_latent}")
+        print(f"  Aprendizaje: {'✓' if self.system.brain.config.enable_learning else '✗'}")
+        print(f"  Homeostasis: {'✓' if self.system.brain.config.enable_homeostasis else '✗'}")
+        print(f"  Sueño: {'✓' if self.system.brain.config.enable_sleep else '✗'}")
+        print(f"  Intervalo de sueño: {self.system.brain.config.sleep_interval} ticks")
+        
+        print("="*70 + "\n")
+    
+    def force_sleep(self):
+        """Fuerza ciclo de sueño"""
+        if not self.system:
+            print("⚠ Sistema no inicializado")
+            return
+        
+        print("\n💤 Iniciando ciclo de sueño forzado...\n")
+        
+        sleep_stats = self.system.brain.sleep_cycle.execute_sleep_cycle(
+            self.system.brain.episodic_memory,
+            self.system.brain.semantic_memory,
+            self.system.brain.cortex,
+            self.system.brain.q_estimator,
+            self.system.brain.pruning_system
+        )
+        
+        print(f"\n✅ Ciclo de sueño completado")
+        print(f"  Episodios consolidados: {sleep_stats.get('episodes_replayed', 0)}")
+        print(f"  Conceptos fusionados: {sleep_stats.get('concepts_merged', 0)}")
+        print(f"  Items podados: {sleep_stats.get('items_pruned', 0)}\n")
+    
+    def show_history(self):
+        """Muestra historial de conversación"""
+        if not self.system or not self.system.conversation_history:
+            print("⚠ No hay historial disponible")
+            return
+        
+        print("\n" + "="*70)
+        print("📜 HISTORIAL DE CONVERSACIÓN")
+        print("="*70 + "\n")
+        
+        for i, conv in enumerate(self.system.conversation_history[-10:], 1):
+            print(f"[{i}] Usuario: {conv['user'][:60]}...")
+            if conv['approved']:
+                print(f"    IA: {conv['assistant'][:60]}...")
+                print(f"    ✓ Aprobado (confianza: {conv['brain_state']['metrics']['confidence']:.2f})")
+            else:
+                print(f"    ✗ Bloqueado")
+            print()
+        
+        if len(self.system.conversation_history) > 10:
+            print(f"... y {len(self.system.conversation_history) - 10} mensajes más\n")
+        
+        print("="*70 + "\n")
+    
+    def export_stats(self):
+        """Exporta estadísticas a JSON"""
+        if not self.system:
+            print("⚠ Sistema no inicializado")
+            return
+        
+        import json
+        from datetime import datetime
+        
+        stats = self.system.get_statistics()
+        
+        # Preparar datos serializables
+        export_data = {
+            'timestamp': datetime.now().isoformat(),
+            'total_conversations': stats['total_conversations'],
+            'approval_rate': float(stats['approval_rate']),
+            'brain_ticks': stats['brain_stats']['total_ticks'],
+            'episodes': stats['brain_stats']['episodic_memory']['total_episodes'],
+            'concepts': stats['brain_stats']['semantic_memory']['total_concepts'],
+            'sleep_cycles': stats['brain_stats']['sleep']['total_cycles']
+        }
+        
+        filename = f"brain_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        
+        with open(filename, 'w') as f:
+            json.dump(export_data, f, indent=2)
+        
+        print(f"\n✅ Estadísticas exportadas a: {filename}\n")
+    
+    def initialize_system(self):
+        """Inicializa el sistema con configuración del usuario"""
+        print("\n🔧 Configuración del sistema\n")
+        
+        # Configuración LLM
+        print("Configuración del LLM:")
+        provider = input("  Provider (ollama/lmstudio) [ollama]: ").strip().lower() or "ollama"
+        
+        if provider == "ollama":
+            base_url = input("  URL [http://localhost:11434]: ").strip() or "http://localhost:11434"
+            model = input("  Modelo [gemma2:2b]: ").strip() or "gemma2:2b"
+        else:
+            base_url = input("  URL [http://localhost:1234]: ").strip() or "http://localhost:1234"
+            model = input("  Modelo [local-model]: ").strip() or "local-model"
+        
+        temperature = input("  Temperature [0.7]: ").strip()
+        temperature = float(temperature) if temperature else 0.7
+        
+        llm_config = LLMConfig(
+            provider=provider,
+            base_url=base_url,
+            model=model,
+            temperature=temperature
+        )
+        
+        # Configuración Cerebro (usar defaults)
+        brain_config = CompleteBrainConfig(
+            dim_observation=384,
+            dim_latent=64,
+            dim_working_memory=32,
+            dim_action=16,
+            max_episodes=1000,
+            max_concepts=200,
+            enable_learning=True,
+            enable_homeostasis=True,
+            enable_sleep=True,
+            sleep_interval=50
+        )
+        
+        print("\n⏳ Inicializando sistema...\n")
+        
+        try:
+            self.system = GovernedLocalLLM(llm_config, brain_config)
+            print("\n✅ Sistema inicializado correctamente\n")
+            return True
+        except Exception as e:
+            print(f"\n❌ Error al inicializar: {e}\n")
+            return False
+    
+    def process_command(self, user_input: str) -> bool:
         """
-        ℒpred: Pérdida de predicción.
-        
-        Mide qué tan bien el modelo interno predice observaciones.
-        
-        Args:
-            y_predicted: predicción ỹₜ
-            y_actual: observación real ŷₜ
-            loss_type: 'mse', 'mae', 'huber'
+        Procesa comando especial.
         
         Returns:
-            loss: pérdida de predicción
+            bool: True si debe continuar, False si debe salir
         """
-        # Asegurar misma dimensión
-        min_len = min(len(y_predicted), len(y_actual))
-        y_pred = y_predicted[:min_len]
-        y_act = y_actual[:min_len]
+        cmd = user_input.strip().lower()
         
-        error = y_pred - y_act
+        if cmd == "/help":
+            self.print_help()
         
-        if loss_type == 'mse':
-            # Mean Squared Error
-            loss = np.mean(error ** 2)
+        elif cmd == "/stats":
+            self.print_stats()
         
-        elif loss_type == 'mae':
-            # Mean Absolute Error
-            loss = np.mean(np.abs(error))
+        elif cmd == "/config":
+            self.print_config()
         
-        elif loss_type == 'huber':
-            # Huber loss (robusto a outliers)
-            delta = 1.0
-            abs_error = np.abs(error)
-            quadratic = np.minimum(abs_error, delta)
-            linear = abs_error - quadratic
-            loss = np.mean(0.5 * quadratic**2 + delta * linear)
+        elif cmd == "/sleep":
+            self.force_sleep()
+        
+        elif cmd == "/history":
+            self.show_history()
+        
+        elif cmd == "/export":
+            self.export_stats()
+        
+        elif cmd == "/reset":
+            confirm = input("⚠️  ¿Seguro que quieres resetear el cerebro? (s/n): ")
+            if confirm.lower() == 's':
+                if self.initialize_system():
+                    print("✅ Cerebro reseteado\n")
+        
+        elif cmd == "/exit":
+            print("\n👋 ¡Hasta luego!\n")
+            return False
         
         else:
-            loss = np.mean(error ** 2)
+            print(f"\n⚠️  Comando desconocido: {cmd}")
+            print("Escribe /help para ver comandos disponibles\n")
         
-        return float(loss)
+        return True
     
-    def compute_memory_loss(self,
-                           retrieval_accuracy: float,
-                           consolidation_rate: float,
-                           retrieval_target: float = 0.8) -> float:
-        """
-        ℒmem: Pérdida de memoria.
+    def run(self):
+        """Ejecuta el loop principal de la CLI"""
+        self.print_banner()
         
-        Penaliza:
-        - Baja precisión de recuperación
-        - Baja tasa de consolidación
+        # Inicializar sistema
+        if not self.initialize_system():
+            return
         
-        Args:
-            retrieval_accuracy: [0,1] - precisión de retrieval
-            consolidation_rate: [0,1] - tasa de consolidación exitosa
-            retrieval_target: objetivo de precisión
+        self.running = True
         
-        Returns:
-            loss: pérdida de memoria
-        """
-        # Componente 1: Error de retrieval
-        retrieval_error = (retrieval_target - retrieval_accuracy) ** 2
-        
-        # Componente 2: Consolidación insuficiente
-        consolidation_penalty = (1.0 - consolidation_rate) ** 2
-        
-        # Pérdida total de memoria
-        loss = 0.6 * retrieval_error + 0.4 * consolidation_penalty
-        
-        return float(loss)
-    
-    def compute_policy_loss(self,
-                           Q_selected: float,
-                           Q_optimal: float,
-                           reward_actual: Optional[float] = None,
-                           reward_predicted: Optional[float] = None) -> float:
-        """
-        ℒpol: Pérdida de política.
-        
-        Penaliza decisiones subóptimas.
-        
-        Args:
-            Q_selected: Q-value de acción seleccionada
-            Q_optimal: Q-value de mejor acción
-            reward_actual: recompensa real obtenida
-            reward_predicted: recompensa predicha
-        
-        Returns:
-            loss: pérdida de política
-        """
-        # Componente 1: Regret (diferencia con óptimo)
-        regret = max(0, Q_optimal - Q_selected)
-        
-        # Componente 2: Error de predicción de recompensa (si disponible)
-        reward_error = 0.0
-        if reward_actual is not None and reward_predicted is not None:
-            reward_error = (reward_predicted - reward_actual) ** 2
-        
-        # TD-error aproximado
-        td_error = regret ** 2
-        
-        loss = td_error + 0.5 * reward_error
-        
-        return float(loss)
-    
-    def compute_governance_loss(self,
-                               confidence: float,
-                               n_violations: int,
-                               audit_result: str,
-                               min_confidence: float = 0.5) -> float:
-        """
-        ℒgov: Pérdida de gobernanza.
-        
-        Penaliza:
-        - Baja confianza
-        - Violaciones de restricciones
-        - Fallos de auditoría
-        
-        Args:
-            confidence: confianza de AMA-G [0,1]
-            n_violations: número de violaciones
-            audit_result: 'pass', 'warning', 'fail', 'revised'
-            min_confidence: umbral mínimo de confianza
-        
-        Returns:
-            loss: pérdida de gobernanza
-        """
-        # Componente 1: Baja confianza
-        confidence_penalty = max(0, min_confidence - confidence) ** 2
-        
-        # Componente 2: Violaciones
-        violation_penalty = n_violations * 0.1
-        
-        # Componente 3: Resultado de auditoría
-        audit_penalties = {
-            'pass': 0.0,
-            'warning': 0.1,
-            'revised': 0.3,
-            'fail': 1.0
-        }
-        audit_penalty = audit_penalties.get(audit_result, 0.5)
-        
-        loss = confidence_penalty + violation_penalty + audit_penalty
-        
-        return float(loss)
-    
-    def compute_total_loss(self,
-                          prediction_metrics: Dict,
-                          memory_metrics: Dict,
-                          policy_metrics: Dict,
-                          governance_metrics: Dict) -> Tuple[float, Dict]:
-        """
-        Calcula pérdida total compuesta.
-        
-        ℒₜ = w₁·ℒpred + w₂·ℒmem + w₃·ℒpol + w₄·ℒgov
-        
-        Args:
-            prediction_metrics: métricas de predicción
-            memory_metrics: métricas de memoria
-            policy_metrics: métricas de política
-            governance_metrics: métricas de gobernanza
-        
-        Returns:
-            total_loss: pérdida total
-            components: desglose por componente
-        """
-        w = self.weights
-        
-        # 1. Pérdida de predicción
-        L_pred = self.compute_prediction_loss(
-            y_predicted=prediction_metrics.get('y_predicted', np.array([0.0])),
-            y_actual=prediction_metrics.get('y_actual', np.array([0.0]))
-        )
-        
-        # 2. Pérdida de memoria
-        L_mem = self.compute_memory_loss(
-            retrieval_accuracy=memory_metrics.get('retrieval_accuracy', 0.5),
-            consolidation_rate=memory_metrics.get('consolidation_rate', 0.5)
-        )
-        
-        # 3. Pérdida de política
-        L_pol = self.compute_policy_loss(
-            Q_selected=policy_metrics.get('Q_selected', 0.0),
-            Q_optimal=policy_metrics.get('Q_optimal', 0.0),
-            reward_actual=policy_metrics.get('reward_actual'),
-            reward_predicted=policy_metrics.get('reward_predicted')
-        )
-        
-        # 4. Pérdida de gobernanza
-        L_gov = self.compute_governance_loss(
-            confidence=governance_metrics.get('confidence', 0.5),
-            n_violations=governance_metrics.get('n_violations', 0),
-            audit_result=governance_metrics.get('audit_result', 'pass')
-        )
-        
-        # Pérdida total ponderada
-        total_loss = (
-            w.prediction * L_pred +
-            w.memory * L_mem +
-            w.policy * L_pol +
-            w.governance * L_gov
-        )
-        
-        # Componentes
-        components = {
-            'L_pred': L_pred,
-            'L_mem': L_mem,
-            'L_pol': L_pol,
-            'L_gov': L_gov,
-            'L_total': total_loss,
-            'weighted': {
-                'pred': w.prediction * L_pred,
-                'mem': w.memory * L_mem,
-                'pol': w.policy * L_pol,
-                'gov': w.governance * L_gov
-            }
-        }
-        
-        # Guardar en historial
-        self.loss_history.append(components)
-        if len(self.loss_history) > 1000:
-            self.loss_history.pop(0)
-        
-        return total_loss, components
-    
-    def get_statistics(self) -> Dict:
-        """Retorna estadísticas de pérdida"""
-        if not self.loss_history:
-            return {}
-        
-        recent = self.loss_history[-100:]
-        
-        return {
-            'avg_total': np.mean([h['L_total'] for h in recent]),
-            'avg_pred': np.mean([h['L_pred'] for h in recent]),
-            'avg_mem': np.mean([h['L_mem'] for h in recent]),
-            'avg_pol': np.mean([h['L_pol'] for h in recent]),
-            'avg_gov': np.mean([h['L_gov'] for h in recent]),
-            'std_total': np.std([h['L_total'] for h in recent]),
-            'trend': self._compute_trend(recent)
-        }
-    
-    def _compute_trend(self, recent_history: List[Dict]) -> str:
-        """Calcula tendencia de la pérdida"""
-        if len(recent_history) < 10:
-            return 'insufficient_data'
-        
-        losses = [h['L_total'] for h in recent_history]
-        first_half = np.mean(losses[:len(losses)//2])
-        second_half = np.mean(losses[len(losses)//2:])
-        
-        change = (second_half - first_half) / (first_half + 1e-9)
-        
-        if change < -0.1:
-            return 'improving'
-        elif change > 0.1:
-            return 'degrading'
-        else:
-            return 'stable'
-
-
-class AdamOptimizer:
-    """
-    Optimizador Adam para actualización de parámetros.
-    
-    θ ← θ - η · Adam(∇ℒₜ)
-    """
-    
-    def __init__(self,
-                 learning_rate: float = 0.001,
-                 beta1: float = 0.9,
-                 beta2: float = 0.999,
-                 epsilon: float = 1e-8):
-        """
-        Args:
-            learning_rate: η
-            beta1: momento de primer orden
-            beta2: momento de segundo orden
-            epsilon: estabilidad numérica
-        """
-        self.lr = learning_rate
-        self.beta1 = beta1
-        self.beta2 = beta2
-        self.epsilon = epsilon
-        
-        # Momentos
-        self.m = {}  # Primer momento (media)
-        self.v = {}  # Segundo momento (varianza no centrada)
-        self.t = 0   # Paso de tiempo
-    
-    def update(self,
-              params: Dict[str, np.ndarray],
-              grads: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        """
-        Actualiza parámetros con Adam.
-        
-        Args:
-            params: parámetros actuales θ
-            grads: gradientes ∇ℒ
-        
-        Returns:
-            params_new: parámetros actualizados
-        """
-        self.t += 1
-        params_new = {}
-        
-        for name, param in params.items():
-            if name not in grads:
-                params_new[name] = param
+        # Loop principal
+        while self.running:
+            try:
+                # Leer input
+                user_input = input("🧑 Tú: ").strip()
+                
+                if not user_input:
+                    continue
+                
+                # Comandos especiales
+                if user_input.startswith('/'):
+                    self.running = self.process_command(user_input)
+                    continue
+                
+                # Procesar mensaje normal
+                print()  # Nueva línea
+                result = self.system.chat(user_input)
+                
+                # Mostrar respuesta
+                if result['approved']:
+                    print(f"\n🤖 IA: {result['response']}\n")
+                    print(f"   ⏱️  Tiempo: {result['elapsed_time']:.2f}s")
+                    print(f"   ✓ Confianza: {result['brain_state']['metrics']['confidence']:.2f}")
+                else:
+                    print(f"\n⛔ IA: {result['response']}\n")
+                    print(f"   Razón: Respuesta bloqueada por gobernanza AMA-G")
+                    if not result.get('intent_preserved', True):
+                        print(f"   ⚠️  Intención no preservada")
+                
+                print()
+            
+            except KeyboardInterrupt:
+                print("\n\n👋 Saliendo...\n")
+                break
+            
+            except Exception as e:
+                print(f"\n❌ Error: {e}\n")
                 continue
-            
-            grad = grads[name]
-            
-            # Inicializar momentos si es necesario
-            if name not in self.m:
-                self.m[name] = np.zeros_like(param)
-                self.v[name] = np.zeros_like(param)
-            
-            # Actualizar momentos
-            self.m[name] = self.beta1 * self.m[name] + (1 - self.beta1) * grad
-            self.v[name] = self.beta2 * self.v[name] + (1 - self.beta2) * (grad ** 2)
-            
-            # Corrección de bias
-            m_hat = self.m[name] / (1 - self.beta1 ** self.t)
-            v_hat = self.v[name] / (1 - self.beta2 ** self.t)
-            
-            # Actualización
-            params_new[name] = param - self.lr * m_hat / (np.sqrt(v_hat) + self.epsilon)
-        
-        return params_new
-    
-    def set_learning_rate(self, new_lr: float):
-        """Actualiza learning rate (controlado por PID)"""
-        self.lr = new_lr
 
 
 # =========================
-# Testing
+# Entry Point
 # =========================
 
 if __name__ == "__main__":
-    print("=== Test de Función de Pérdida Compuesta ===\n")
-    
-    np.random.seed(42)
-    
-    # Crear loss
-    loss_fn = CompositeLoss(
-        weights=LossWeights(
-            prediction=1.0,
-            memory=0.5,
-            policy=0.8,
-            governance=0.3
-        )
-    )
-    
-    print("Pesos de pérdida:")
-    print(f"  Predicción: {loss_fn.weights.prediction}")
-    print(f"  Memoria: {loss_fn.weights.memory}")
-    print(f"  Política: {loss_fn.weights.policy}")
-    print(f"  Gobernanza: {loss_fn.weights.governance}")
-    
-    # Simular secuencia de ticks
-    print("\n--- Secuencia de Evaluación de Pérdida ---\n")
-    
-    for t in range(10):
-        # Métricas simuladas
-        pred_metrics = {
-            'y_predicted': np.random.randn(32) * 0.5,
-            'y_actual': np.random.randn(32) * 0.5
-        }
-        
-        mem_metrics = {
-            'retrieval_accuracy': 0.7 + 0.1 * np.sin(t / 3),
-            'consolidation_rate': 0.8 + 0.1 * np.cos(t / 4)
-        }
-        
-        pol_metrics = {
-            'Q_selected': 0.6 + 0.2 * np.random.rand(),
-            'Q_optimal': 0.8 + 0.1 * np.random.rand(),
-            'reward_actual': 0.5 + 0.3 * np.random.rand(),
-            'reward_predicted': 0.6 + 0.2 * np.random.rand()
-        }
-        
-        gov_metrics = {
-            'confidence': 0.7 + 0.2 * np.random.rand(),
-            'n_violations': np.random.randint(0, 2),
-            'audit_result': np.random.choice(['pass', 'warning', 'pass', 'pass'])
-        }
-        
-        # Calcular pérdida
-        total_loss, components = loss_fn.compute_total_loss(
-            pred_metrics, mem_metrics, pol_metrics, gov_metrics
-        )
-        
-        if t < 3 or t % 3 == 0:
-            print(f"Tick {t}:")
-            print(f"  ℒ_total = {total_loss:.4f}")
-            print(f"  Componentes:")
-            print(f"    ℒ_pred = {components['L_pred']:.4f}")
-            print(f"    ℒ_mem = {components['L_mem']:.4f}")
-            print(f"    ℒ_pol = {components['L_pol']:.4f}")
-            print(f"    ℒ_gov = {components['L_gov']:.4f}")
-            print()
-    
-    # Estadísticas
-    print("--- Estadísticas de Pérdida ---")
-    stats = loss_fn.get_statistics()
-    
-    for key, value in stats.items():
-        if key != 'trend':
-            print(f"  {key}: {value:.4f}")
-        else:
-            print(f"  {key}: {value}")
-    
-    # Test de optimizador
-    print("\n--- Test de Optimizador Adam ---")
-    
-    optimizer = AdamOptimizer(learning_rate=0.01)
-    
-    # Parámetros simulados
-    params = {
-        'W': np.random.randn(10, 10) * 0.1
-    }
-    
-    for step in range(5):
-        # Gradientes simulados
-        grads = {
-            'W': np.random.randn(10, 10) * 0.01
-        }
-        
-        params = optimizer.update(params, grads)
-        
-        print(f"Step {step}: param_norm = {np.linalg.norm(params['W']):.4f}")
-    
-    print("\n✅ Sistema de Pérdida y Optimización funcional")
+    cli = InteractiveCLI()
+    cli.run()

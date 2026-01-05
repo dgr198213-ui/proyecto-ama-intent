@@ -1,376 +1,408 @@
-# learning/consolidation.py - Consolidación Nocturna ("Sueño")
+# install.py - Script de Instalación Automatizada
 """
-Implementa consolidación offline tipo "sueño":
-- Batch replay de episodios importantes
-- Reorganización de memoria semántica
-- Poda intensiva
-- Ajuste de parámetros
+Script para instalar y configurar el Cerebro Artificial automáticamente.
 
-Este proceso ocurre "offline" cuando el cerebro no está activo.
+Uso:
+    python install.py
 """
 
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
+import os
+import sys
+import subprocess
+import platform
+import urllib.request
+import json
 
-@dataclass
-class SleepConfig:
-    """Configuración del proceso de sueño"""
-    replay_episodes: int = 50          # Episodios a replay
-    replay_iterations: int = 10        # Iteraciones de replay
-    reorganize_semantic: bool = True   # Reorganizar memoria semántica
-    intensive_pruning: bool = True     # Poda intensiva
-    dream_noise: float = 0.1           # Ruido en replay (creatividad)
+class Colors:
+    """Códigos de color ANSI"""
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
 
-class SleepCycle:
-    """
-    Ciclo de Sueño para Consolidación Offline.
+def print_header(text):
+    """Imprime header"""
+    print(f"\n{Colors.HEADER}{Colors.BOLD}{'='*70}")
+    print(f"{text}")
+    print(f"{'='*70}{Colors.ENDC}\n")
+
+def print_step(step, text):
+    """Imprime paso"""
+    print(f"{Colors.OKBLUE}[{step}]{Colors.ENDC} {text}")
+
+def print_success(text):
+    """Imprime éxito"""
+    print(f"{Colors.OKGREEN}✓ {text}{Colors.ENDC}")
+
+def print_error(text):
+    """Imprime error"""
+    print(f"{Colors.FAIL}✗ {text}{Colors.ENDC}")
+
+def print_warning(text):
+    """Imprime advertencia"""
+    print(f"{Colors.WARNING}⚠ {text}{Colors.ENDC}")
+
+def check_python_version():
+    """Verifica versión de Python"""
+    print_step("1/6", "Verificando versión de Python...")
     
-    Fases:
-    1. NREM (consolidación sistemática)
-       - Replay de episodios importantes
-       - Fortalecimiento de conexiones
+    version = sys.version_info
+    if version.major < 3 or (version.major == 3 and version.minor < 8):
+        print_error(f"Python {version.major}.{version.minor} detectado")
+        print_error("Se requiere Python 3.8 o superior")
+        return False
     
-    2. REM (procesamiento creativo)
-       - Replay con ruido (dreaming)
-       - Descubrimiento de patrones
+    print_success(f"Python {version.major}.{version.minor}.{version.micro} OK")
+    return True
+
+def check_ollama():
+    """Verifica si Ollama está instalado"""
+    print_step("2/6", "Verificando Ollama...")
     
-    3. Reorganización
-       - Merge de conceptos similares
-       - Poda de información redundante
+    try:
+        # Intentar conectar al servidor
+        response = urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2)
+        if response.status == 200:
+            print_success("Ollama está ejecutándose")
+            
+            # Listar modelos
+            data = json.loads(response.read())
+            models = data.get('models', [])
+            
+            if models:
+                print_success(f"Modelos disponibles: {len(models)}")
+                for model in models[:3]:
+                    print(f"  - {model.get('name', 'Unknown')}")
+                if len(models) > 3:
+                    print(f"  ... y {len(models) - 3} más")
+            else:
+                print_warning("No hay modelos descargados")
+                print("Ejecuta: ollama pull gemma2:2b")
+            
+            return True
     
-    4. Homeostasis
-       - Reset de parámetros temporales
-       - Preparación para nuevo ciclo
-    """
+    except:
+        print_warning("Ollama no está ejecutándose")
+        print("Opciones:")
+        print("  1. Instalar Ollama desde: https://ollama.ai")
+        print("  2. Iniciar Ollama: ollama serve")
+        print("  3. O usar LM Studio como alternativa")
+        
+        choice = input("\n¿Continuar sin Ollama? (s/n): ").lower()
+        return choice == 's'
+
+def install_dependencies():
+    """Instala dependencias de Python"""
+    print_step("3/6", "Instalando dependencias...")
     
-    def __init__(self, config: Optional[SleepConfig] = None):
-        """
-        Args:
-            config: configuración del sueño
-        """
-        self.config = config or SleepConfig()
-        
-        # Estadísticas
-        self.total_sleep_cycles = 0
-        self.sleep_history = []
+    dependencies = [
+        'numpy',
+        'requests'
+    ]
     
-    def execute_sleep_cycle(self,
-                           episodic_memory,
-                           semantic_memory,
-                           cortex,
-                           q_estimator,
-                           pruning_system) -> Dict:
-        """
-        Ejecuta un ciclo completo de sueño.
-        
-        Args:
-            episodic_memory: EpisodicMemoryGraph
-            semantic_memory: SemanticMemoryMatrix
-            cortex: CorticalState
-            q_estimator: QValueEstimator
-            pruning_system: AdaptivePruningSystem
-        
-        Returns:
-            Dict con estadísticas del ciclo
-        """
-        self.total_sleep_cycles += 1
-        
-        print(f"\n{'='*60}")
-        print(f"💤 CICLO DE SUEÑO #{self.total_sleep_cycles}")
-        print(f"{'='*60}\n")
-        
-        stats = {
-            'cycle': self.total_sleep_cycles,
-            'episodes_replayed': 0,
-            'concepts_merged': 0,
-            'items_pruned': 0,
-            'phase_durations': {}
-        }
-        
-        # ==========================================
-        # FASE 1: NREM - Consolidación Sistemática
-        # ==========================================
-        print("[FASE 1/4] NREM - Consolidación sistemática...")
-        
-        nrem_stats = self._nrem_phase(
-            episodic_memory,
-            semantic_memory,
-            cortex,
-            q_estimator
-        )
-        
-        stats['episodes_replayed'] = nrem_stats['replayed']
-        stats['phase_durations']['nrem'] = nrem_stats['duration']
-        
-        print(f"  ✓ {nrem_stats['replayed']} episodios consolidados\n")
-        
-        # ==========================================
-        # FASE 2: REM - Procesamiento Creativo
-        # ==========================================
-        print("[FASE 2/4] REM - Procesamiento creativo (dreaming)...")
-        
-        rem_stats = self._rem_phase(
-            episodic_memory,
-            semantic_memory,
-            cortex
-        )
-        
-        stats['patterns_discovered'] = rem_stats['patterns']
-        stats['phase_durations']['rem'] = rem_stats['duration']
-        
-        print(f"  ✓ {rem_stats['patterns']} nuevos patrones descubiertos\n")
-        
-        # ==========================================
-        # FASE 3: Reorganización
-        # ==========================================
-        print("[FASE 3/4] Reorganización de memoria...")
-        
-        if self.config.reorganize_semantic:
-            print("  Merging conceptos similares...")
-            pre_merge = semantic_memory.n_concepts
-            semantic_memory.merge_similar_concepts(threshold=0.85)
-            post_merge = semantic_memory.n_concepts
-            stats['concepts_merged'] = pre_merge - post_merge
-            print(f"  ✓ {stats['concepts_merged']} conceptos fusionados")
-        
-        if self.config.intensive_pruning:
-            print("  Poda intensiva...")
-            prune_result = pruning_system.execute_pruning(
-                episodic_memory,
-                semantic_memory,
-                force=True
+    optional_deps = [
+        'sentence-transformers',
+        'scikit-learn'
+    ]
+    
+    # Instalar dependencias principales
+    print("Instalando paquetes principales...")
+    for dep in dependencies:
+        try:
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", dep, "-q"],
+                stdout=subprocess.DEVNULL
             )
-            stats['items_pruned'] = prune_result['pruned_count']
-            print(f"  ✓ {stats['items_pruned']} items eliminados")
-        
-        print()
-        
-        # ==========================================
-        # FASE 4: Homeostasis y Reset
-        # ==========================================
-        print("[FASE 4/4] Homeostasis y preparación...")
-        
-        # Reset estados temporales (working memory, etc.)
-        # cortex puede mantener su estado latente
-        
-        print("  ✓ Sistema preparado para nuevo ciclo\n")
-        
-        # ==========================================
-        # Resumen
-        # ==========================================
-        print(f"{'='*60}")
-        print(f"RESUMEN DEL CICLO DE SUEÑO")
-        print(f"{'='*60}")
-        print(f"  Episodios consolidados: {stats['episodes_replayed']}")
-        print(f"  Patrones descubiertos: {stats['patterns_discovered']}")
-        print(f"  Conceptos fusionados: {stats['concepts_merged']}")
-        print(f"  Items podados: {stats['items_pruned']}")
-        print(f"{'='*60}\n")
-        
-        # Guardar en historial
-        self.sleep_history.append(stats)
-        
-        return stats
+            print_success(f"{dep} instalado")
+        except:
+            print_error(f"Error instalando {dep}")
+            return False
     
-    def _nrem_phase(self,
-                    episodic_memory,
-                    semantic_memory,
-                    cortex,
-                    q_estimator) -> Dict:
-        """
-        Fase NREM: Consolidación sistemática.
-        
-        Replay de episodios importantes sin ruido.
-        Fortalecimiento de conexiones fuertes.
-        """
-        import time
-        start = time.time()
-        
-        # Seleccionar episodios importantes para replay
-        # Criterio: alto PageRank + recientes + alto reward
-        
-        if not episodic_memory.episodes:
-            return {'replayed': 0, 'duration': 0.0}
-        
-        # Calcular PageRank
-        pr_scores = episodic_memory.compute_pagerank()
-        
-        # Ordenar por importancia
-        episodes_ranked = sorted(
-            episodic_memory.episodes.items(),
-            key=lambda x: pr_scores.get(x[0], 0.0) * x[1].importance,
-            reverse=True
-        )
-        
-        n_replay = min(self.config.replay_episodes, len(episodes_ranked))
-        
-        # Replay iterativo
-        for iteration in range(self.config.replay_iterations):
-            for ep_id, episode in episodes_ranked[:n_replay]:
-                # Reactivar estado
-                state = episode.state
-                
-                # Reconsolidar en memoria semántica
-                semantic_memory.consolidate(
-                    state=state,
-                    tags=list(episode.tags),
-                    threshold=0.75  # Umbral más bajo = más consolidación
+    # Preguntar por dependencias opcionales
+    print("\nDependencias opcionales (mejoran embeddings):")
+    print("  - sentence-transformers")
+    print("  - scikit-learn")
+    
+    install_optional = input("\n¿Instalar dependencias opcionales? (s/n): ").lower()
+    
+    if install_optional == 's':
+        print("\nInstalando dependencias opcionales...")
+        for dep in optional_deps:
+            try:
+                print(f"Instalando {dep}... (puede tardar unos minutos)")
+                subprocess.check_call(
+                    [sys.executable, "-m", "pip", "install", dep],
+                    stdout=subprocess.DEVNULL
                 )
-        
-        duration = time.time() - start
-        
-        return {
-            'replayed': n_replay * self.config.replay_iterations,
-            'duration': duration
-        }
+                print_success(f"{dep} instalado")
+            except:
+                print_warning(f"No se pudo instalar {dep} (opcional)")
     
-    def _rem_phase(self,
-                   episodic_memory,
-                   semantic_memory,
-                   cortex) -> Dict:
-        """
-        Fase REM: Procesamiento creativo.
-        
-        Replay con ruido (dreaming).
-        Descubrimiento de nuevos patrones.
-        """
-        import time
-        start = time.time()
-        
-        patterns_discovered = 0
-        
-        if not episodic_memory.episodes:
-            return {'patterns': 0, 'duration': 0.0}
-        
-        # Seleccionar episodios aleatorios
-        episode_ids = list(episodic_memory.episodes.keys())
-        n_samples = min(20, len(episode_ids))
-        sampled_ids = np.random.choice(episode_ids, n_samples, replace=False)
-        
-        for ep_id in sampled_ids:
-            episode = episodic_memory.episodes[ep_id]
-            
-            # Añadir ruido (dreaming)
-            noisy_state = episode.state + np.random.randn(*episode.state.shape) * self.config.dream_noise
-            
-            # Buscar conceptos cercanos
-            similar_concepts = semantic_memory.retrieve(
-                query=noisy_state,
-                top_k=3,
-                min_similarity=0.5
-            )
-            
-            # Si encuentra relaciones inesperadas = nuevo patrón
-            if similar_concepts and len(similar_concepts) >= 2:
-                # Crear nueva asociación implícita
-                patterns_discovered += 1
-        
-        duration = time.time() - start
-        
-        return {
-            'patterns': patterns_discovered,
-            'duration': duration
-        }
+    print_success("Dependencias instaladas")
+    return True
+
+def create_project_structure():
+    """Crea estructura de directorios"""
+    print_step("4/6", "Creando estructura del proyecto...")
     
-    def get_statistics(self) -> Dict:
-        """Retorna estadísticas de ciclos de sueño"""
-        if not self.sleep_history:
-            return {
-                'total_cycles': self.total_sleep_cycles
-            }
+    directories = [
+        'sensing',
+        'cortex',
+        'memory',
+        'decision',
+        'governance',
+        'control',
+        'learning'
+    ]
+    
+    for directory in directories:
+        os.makedirs(directory, exist_ok=True)
         
-        return {
-            'total_cycles': self.total_sleep_cycles,
-            'avg_episodes_replayed': np.mean([s['episodes_replayed'] for s in self.sleep_history]),
-            'avg_patterns_discovered': np.mean([s['patterns_discovered'] for s in self.sleep_history]),
-            'avg_concepts_merged': np.mean([s['concepts_merged'] for s in self.sleep_history]),
-            'avg_items_pruned': np.mean([s['items_pruned'] for s in self.sleep_history]),
-            'total_consolidations': sum(s['episodes_replayed'] for s in self.sleep_history)
-        }
+        # Crear __init__.py
+        init_file = os.path.join(directory, '__init__.py')
+        if not os.path.exists(init_file):
+            with open(init_file, 'w') as f:
+                f.write(f'"""Módulo {directory}"""\n')
+    
+    print_success("Estructura creada")
+    return True
 
+def create_launcher():
+    """Crea script de inicio"""
+    print_step("5/6", "Creando launcher...")
+    
+    launcher_content = """#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+\"\"\"
+Launcher del Cerebro Artificial
+\"\"\"
 
-# =========================
-# Testing
-# =========================
+import sys
+import os
+
+# Añadir path del proyecto
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Cerebro Artificial - IA Local Gobernada')
+    parser.add_argument('--cli', action='store_true', help='Modo CLI (terminal)')
+    parser.add_argument('--gui', action='store_true', help='Modo GUI (interfaz gráfica)')
+    parser.add_argument('--version', action='version', version='Cerebro Artificial v1.0.0')
+    
+    args = parser.parse_args()
+    
+    if args.cli:
+        print("Iniciando modo CLI...")
+        from cli_interactive import InteractiveCLI
+        cli = InteractiveCLI()
+        cli.run()
+    
+    elif args.gui:
+        print("Iniciando modo GUI...")
+        try:
+            import tkinter as tk
+            from brain_gui import BrainGUI
+            
+            root = tk.Tk()
+            app = BrainGUI(root)
+            root.mainloop()
+        
+        except ImportError:
+            print("Error: tkinter no está instalado")
+            print("Instálalo con: sudo apt-get install python3-tk (Linux)")
+            print("O usa --cli para modo terminal")
+    
+    else:
+        # Por defecto, intentar GUI
+        try:
+            import tkinter as tk
+            from brain_gui import BrainGUI
+            
+            root = tk.Tk()
+            app = BrainGUI(root)
+            root.mainloop()
+        
+        except ImportError:
+            print("tkinter no disponible, iniciando CLI...")
+            from cli_interactive import InteractiveCLI
+            cli = InteractiveCLI()
+            cli.run()
 
 if __name__ == "__main__":
-    print("=== Test de Consolidación Nocturna (Sueño) ===\n")
+    main()
+"""
     
-    # Mock objects para testing
-    class MockEpisodicMemory:
-        def __init__(self):
-            from memory.episodic_graph import Episode
-            self.episodes = {}
-            self.max_episodes = 100
-            
-            # Crear episodios simulados
-            for i in range(20):
-                ep_id = f"ep_{i}"
-                self.episodes[ep_id] = Episode(
-                    id=ep_id,
-                    state=np.random.randn(32) * 0.5,
-                    context={'reward': np.random.rand()},
-                    timestamp=f"2025-01-{i:02d}",
-                    importance=np.random.rand()
-                )
-        
-        def compute_pagerank(self):
-            return {ep_id: np.random.rand() for ep_id in self.episodes.keys()}
+    with open('start.py', 'w', encoding='utf-8') as f:
+        f.write(launcher_content)
     
-    class MockSemanticMemory:
-        def __init__(self):
-            self.n_concepts = 10
-        
-        def consolidate(self, state, tags, threshold):
-            return 0, False
-        
-        def retrieve(self, query, top_k, min_similarity):
-            return [(i, 0.7, None) for i in range(min(top_k, 3))]
-        
-        def merge_similar_concepts(self, threshold):
-            self.n_concepts -= 2
+    # Hacer ejecutable en Unix
+    if platform.system() != 'Windows':
+        os.chmod('start.py', 0o755)
     
-    class MockCortex:
-        pass
+    print_success("Launcher creado: start.py")
+    return True
+
+def create_readme():
+    """Crea README con instrucciones"""
+    print_step("6/6", "Creando documentación...")
     
-    class MockQEstimator:
-        pass
+    readme_content = """# 🧠 Cerebro Artificial - IA Local Gobernada
+
+Sistema de IA local completamente gobernado con arquitectura biomimética.
+
+## 🚀 Inicio Rápido
+
+### Modo GUI (Recomendado)
+```bash
+python start.py --gui
+```
+
+### Modo CLI (Terminal)
+```bash
+python start.py --cli
+```
+
+### Sin argumentos (auto-detecta)
+```bash
+python start.py
+```
+
+## 📋 Requisitos
+
+- Python 3.8+
+- Ollama o LM Studio
+- 8 GB RAM (16 GB recomendado)
+
+## 🔧 Configuración
+
+### Ollama
+```bash
+# Instalar desde https://ollama.ai
+
+# Descargar modelo
+ollama pull gemma2:2b
+
+# Iniciar servidor
+ollama serve
+```
+
+### LM Studio
+1. Descargar desde https://lmstudio.ai
+2. Descargar modelo desde la interfaz
+3. Iniciar servidor local
+
+## 📚 Documentación
+
+Ver `INSTALL.md` para instalación detallada.
+
+## 🎯 Características
+
+- ✅ Gobernanza AMA-G en cada interacción
+- ✅ Memoria episódica y semántica
+- ✅ Aprendizaje continuo
+- ✅ Homeostasis automática
+- ✅ Consolidación nocturna ("sueño")
+- ✅ 100% local y privado
+
+## 📊 Arquitectura
+
+```
+FASE 1: Percepción + Decisión + Gobernanza
+FASE 2: Memoria (Episódica/Semántica/Working)
+FASE 3: Aprendizaje (PID/Loss/Estabilidad/Sueño)
+```
+
+## 🛠️ Comandos
+
+### CLI
+- `/help` - Ayuda
+- `/stats` - Estadísticas
+- `/sleep` - Forzar consolidación
+- `/exit` - Salir
+
+### GUI
+- Botones en la interfaz para todas las funciones
+
+## 📝 Versión
+
+v1.0.0 - Sistema completo funcional
+"""
     
-    class MockPruningSystem:
-        def execute_pruning(self, ep_mem, sem_mem, force):
-            return {'pruned_count': 5}
+    with open('README.md', 'w', encoding='utf-8') as f:
+        f.write(readme_content)
     
-    # Crear mocks
-    ep_mem = MockEpisodicMemory()
-    sem_mem = MockSemanticMemory()
-    cortex = MockCortex()
-    q_est = MockQEstimator()
-    pruner = MockPruningSystem()
+    print_success("README.md creado")
+    return True
+
+def main():
+    """Función principal"""
+    print_header("🧠 INSTALACIÓN DEL CEREBRO ARTIFICIAL")
     
-    # Crear ciclo de sueño
-    sleep = SleepCycle(
-        config=SleepConfig(
-            replay_episodes=10,
-            replay_iterations=3,
-            reorganize_semantic=True,
-            intensive_pruning=True,
-            dream_noise=0.15
-        )
-    )
+    print("Este script configurará automáticamente el sistema.")
+    print("Estimado: 5-10 minutos\n")
     
-    # Ejecutar ciclo
-    stats = sleep.execute_sleep_cycle(
-        ep_mem, sem_mem, cortex, q_est, pruner
-    )
+    input("Presiona Enter para continuar...")
     
-    # Estadísticas
-    print("\n--- Estadísticas del Sueño ---")
-    sleep_stats = sleep.get_statistics()
-    for key, value in sleep_stats.items():
-        if isinstance(value, float):
-            print(f"  {key}: {value:.2f}")
-        else:
-            print(f"  {key}: {value}")
+    # Paso 1: Verificar Python
+    if not check_python_version():
+        print_error("\nInstalación abortada: Python no compatible")
+        return 1
     
-    print("\n✅ Sistema de Consolidación Nocturna funcional")
+    # Paso 2: Verificar Ollama
+    if not check_ollama():
+        print_warning("\nContinuando sin Ollama...")
+    
+    # Paso 3: Instalar dependencias
+    if not install_dependencies():
+        print_error("\nInstalación abortada: Error en dependencias")
+        return 1
+    
+    # Paso 4: Crear estructura
+    if not create_project_structure():
+        print_error("\nInstalación abortada: Error creando estructura")
+        return 1
+    
+    # Paso 5: Crear launcher
+    if not create_launcher():
+        print_error("\nInstalación abortada: Error creando launcher")
+        return 1
+    
+    # Paso 6: Crear README
+    if not create_readme():
+        print_warning("\nAdvertencia: No se pudo crear README")
+    
+    # Finalización
+    print_header("✅ INSTALACIÓN COMPLETADA")
+    
+    print("El sistema está listo para usar.\n")
+    print("📝 PRÓXIMOS PASOS:")
+    print("\n1. Asegúrate de que Ollama esté ejecutándose:")
+    print("   ollama serve")
+    print("\n2. Descarga un modelo (si no lo has hecho):")
+    print("   ollama pull gemma2:2b")
+    print("\n3. Inicia el sistema:")
+    print("   python start.py --gui    (interfaz gráfica)")
+    print("   python start.py --cli    (terminal)")
+    print("\n4. ¡Disfruta de tu IA local gobernada! 🚀")
+    
+    # Preguntar si iniciar ahora
+    print("\n" + "="*70)
+    start_now = input("\n¿Iniciar el sistema ahora? (s/n): ").lower()
+    
+    if start_now == 's':
+        print("\nIniciando...")
+        try:
+            subprocess.call([sys.executable, 'start.py'])
+        except:
+            print_error("Error al iniciar. Ejecuta manualmente: python start.py")
+    
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

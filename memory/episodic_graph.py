@@ -1,452 +1,568 @@
-# learning/stability.py - Control de Estabilidad del Aprendizaje
+# brain_gui.py - Interfaz Gráfica del Cerebro Artificial
 """
-Implementa control de estabilidad mediante eigenvalues:
-Si max|λ(J)| > λ_max → η↓, clip grad, rollback
+GUI moderna para el Cerebro Artificial con IA Local.
 
-Previene colapso catastrófico del aprendizaje.
+Características:
+- Chat en tiempo real
+- Visualización de métricas del cerebro
+- Gráficos de estado en vivo
+- Panel de configuración
+- Estadísticas detalladas
 """
 
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
-import copy
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox
+import threading
+import queue
+import time
+from typing import Optional, Dict
+import sys
 
-@dataclass
-class StabilityConfig:
-    """Configuración de control de estabilidad"""
-    max_spectral_radius: float = 1.0    # λ_max
-    grad_clip_norm: float = 1.0         # Clip de gradientes
-    lr_decay_factor: float = 0.5        # Factor de decay de η
-    lr_min: float = 1e-5                # Learning rate mínimo
-    check_interval: int = 10            # Cada cuántos steps verificar
-    enable_rollback: bool = True        # Permitir rollback
+# Importar módulos del cerebro
+from ollama_brain_interface import GovernedLocalLLM, LLMConfig, CompleteBrainConfig
 
-@dataclass
-class StabilityMetrics:
-    """Métricas de estabilidad"""
-    spectral_radius: float
-    max_eigenvalue: float
-    condition_number: float
-    grad_norm: float
-    is_stable: bool
-    action_taken: str  # 'none', 'clip', 'decay_lr', 'rollback'
-
-class StabilityController:
+class BrainGUI:
     """
-    Controlador de Estabilidad para Aprendizaje.
-    
-    Monitorea:
-    1. Radio espectral de matrices recurrentes
-    2. Norma de gradientes
-    3. Número de condición
-    
-    Interviene:
-    1. Clipping de gradientes
-    2. Reducción de learning rate
-    3. Rollback a checkpoint estable
+    Interfaz Gráfica Principal del Cerebro Artificial.
     """
     
-    def __init__(self, config: Optional[StabilityConfig] = None):
+    def __init__(self, root: tk.Tk):
         """
         Args:
-            config: configuración de estabilidad
+            root: ventana principal de Tkinter
         """
-        self.config = config or StabilityConfig()
+        self.root = root
+        self.root.title("🧠 Cerebro Artificial - IA Local Gobernada")
+        self.root.geometry("1400x900")
         
-        # Historial de checkpoints
-        self.checkpoints = []
-        self.max_checkpoints = 10
+        # Sistema
+        self.system: Optional[GovernedLocalLLM] = None
+        self.processing = False
         
-        # Estadísticas
-        self.total_checks = 0
-        self.instabilities_detected = 0
-        self.rollbacks_performed = 0
-        self.lr_decays_performed = 0
+        # Cola para comunicación entre threads
+        self.message_queue = queue.Queue()
         
-        # Historial de métricas
-        self.metrics_history = []
+        # Colores modernos
+        self.colors = {
+            'bg': '#1e1e1e',
+            'fg': '#ffffff',
+            'accent': '#007acc',
+            'success': '#4caf50',
+            'warning': '#ff9800',
+            'error': '#f44336',
+            'panel': '#252526',
+            'input': '#3c3c3c'
+        }
+        
+        # Configurar estilo
+        self.setup_styles()
+        
+        # Construir interfaz
+        self.build_ui()
+        
+        # Inicializar sistema en segundo plano
+        self.initialize_system_async()
     
-    def check_stability(self,
-                       jacobian: Optional[np.ndarray] = None,
-                       recurrent_matrix: Optional[np.ndarray] = None,
-                       gradients: Optional[Dict[str, np.ndarray]] = None) -> StabilityMetrics:
-        """
-        Verifica estabilidad del sistema.
+    def setup_styles(self):
+        """Configura estilos de la interfaz"""
+        style = ttk.Style()
+        style.theme_use('clam')
         
-        Args:
-            jacobian: matriz jacobiana del sistema
-            recurrent_matrix: matriz recurrente (W_rec)
-            gradients: gradientes actuales
+        # Configurar colores
+        self.root.configure(bg=self.colors['bg'])
         
-        Returns:
-            StabilityMetrics: métricas de estabilidad
-        """
-        self.total_checks += 1
-        
-        # Determinar qué matriz analizar
-        if jacobian is not None:
-            matrix = jacobian
-        elif recurrent_matrix is not None:
-            matrix = recurrent_matrix
-        else:
-            # Sin matriz, solo verificar gradientes
-            return self._check_gradients_only(gradients)
+        style.configure('TFrame', background=self.colors['bg'])
+        style.configure('TLabel', background=self.colors['bg'], foreground=self.colors['fg'])
+        style.configure('TButton', background=self.colors['accent'], foreground=self.colors['fg'])
+        style.configure('Header.TLabel', font=('Segoe UI', 16, 'bold'))
+        style.configure('Metric.TLabel', font=('Segoe UI', 12))
+        style.configure('Status.TLabel', font=('Segoe UI', 10))
+    
+    def build_ui(self):
+        """Construye la interfaz de usuario"""
         
         # ==========================================
-        # 1. ANÁLISIS DE EIGENVALUES
+        # PANEL SUPERIOR: Header
         # ==========================================
-        eigenvalues = np.linalg.eigvals(matrix)
+        header_frame = ttk.Frame(self.root)
+        header_frame.pack(fill='x', padx=10, pady=10)
         
-        # Radio espectral: max|λ|
-        spectral_radius = np.max(np.abs(eigenvalues))
-        
-        # Eigenvalue con mayor magnitud
-        max_eig_idx = np.argmax(np.abs(eigenvalues))
-        max_eigenvalue = eigenvalues[max_eig_idx]
-        
-        # ==========================================
-        # 2. NÚMERO DE CONDICIÓN
-        # ==========================================
-        try:
-            condition_number = np.linalg.cond(matrix)
-        except:
-            condition_number = np.inf
-        
-        # ==========================================
-        # 3. NORMA DE GRADIENTES
-        # ==========================================
-        grad_norm = 0.0
-        if gradients:
-            grad_norm = self._compute_grad_norm(gradients)
-        
-        # ==========================================
-        # 4. DETERMINAR ESTABILIDAD
-        # ==========================================
-        is_stable = True
-        action_taken = 'none'
-        
-        # Verificar radio espectral
-        if spectral_radius > self.config.max_spectral_radius:
-            is_stable = False
-            self.instabilities_detected += 1
-            action_taken = 'unstable_detected'
-        
-        # Verificar número de condición (matriz mal condicionada)
-        if condition_number > 1e10:
-            is_stable = False
-            action_taken = 'ill_conditioned'
-        
-        # Verificar gradientes explosivos
-        if grad_norm > 100.0:
-            is_stable = False
-            action_taken = 'exploding_gradients'
-        
-        # Crear métricas
-        metrics = StabilityMetrics(
-            spectral_radius=float(spectral_radius),
-            max_eigenvalue=complex(max_eigenvalue),
-            condition_number=float(condition_number),
-            grad_norm=float(grad_norm),
-            is_stable=is_stable,
-            action_taken=action_taken
+        title_label = ttk.Label(
+            header_frame,
+            text="🧠 CEREBRO ARTIFICIAL - IA LOCAL GOBERNADA",
+            style='Header.TLabel'
         )
+        title_label.pack(side='left')
         
-        # Guardar en historial
-        self.metrics_history.append(metrics)
-        if len(self.metrics_history) > 1000:
-            self.metrics_history.pop(0)
+        self.status_label = ttk.Label(
+            header_frame,
+            text="⏳ Inicializando...",
+            style='Status.TLabel',
+            foreground=self.colors['warning']
+        )
+        self.status_label.pack(side='right')
         
-        return metrics
+        # ==========================================
+        # CONTENEDOR PRINCIPAL (3 columnas)
+        # ==========================================
+        main_container = ttk.Frame(self.root)
+        main_container.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # Columna 1: Chat (50%)
+        chat_frame = self.create_chat_panel(main_container)
+        chat_frame.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
+        
+        # Columna 2: Métricas (25%)
+        metrics_frame = self.create_metrics_panel(main_container)
+        metrics_frame.grid(row=0, column=1, sticky='nsew', padx=5)
+        
+        # Columna 3: Estado del Cerebro (25%)
+        brain_frame = self.create_brain_panel(main_container)
+        brain_frame.grid(row=0, column=2, sticky='nsew', padx=(5, 0))
+        
+        # Configurar pesos de columnas
+        main_container.columnconfigure(0, weight=2)
+        main_container.columnconfigure(1, weight=1)
+        main_container.columnconfigure(2, weight=1)
+        main_container.rowconfigure(0, weight=1)
+        
+        # ==========================================
+        # PANEL INFERIOR: Controles
+        # ==========================================
+        control_frame = self.create_control_panel(self.root)
+        control_frame.pack(fill='x', padx=10, pady=10)
     
-    def _check_gradients_only(self, 
-                              gradients: Optional[Dict[str, np.ndarray]]) -> StabilityMetrics:
-        """Verifica solo gradientes cuando no hay matriz"""
-        if gradients is None:
-            return StabilityMetrics(
-                spectral_radius=0.0,
-                max_eigenvalue=0.0,
-                condition_number=1.0,
-                grad_norm=0.0,
-                is_stable=True,
-                action_taken='none'
+    def create_chat_panel(self, parent) -> ttk.Frame:
+        """Crea panel de chat"""
+        frame = ttk.Frame(parent)
+        
+        # Header
+        header = ttk.Label(frame, text="💬 Conversación", style='Header.TLabel')
+        header.pack(anchor='w', pady=(0, 10))
+        
+        # Área de chat
+        chat_container = tk.Frame(frame, bg=self.colors['panel'])
+        chat_container.pack(fill='both', expand=True)
+        
+        self.chat_display = scrolledtext.ScrolledText(
+            chat_container,
+            wrap=tk.WORD,
+            font=('Consolas', 10),
+            bg=self.colors['panel'],
+            fg=self.colors['fg'],
+            insertbackground=self.colors['fg'],
+            state='disabled',
+            relief='flat',
+            padx=10,
+            pady=10
+        )
+        self.chat_display.pack(fill='both', expand=True)
+        
+        # Configurar tags para colores
+        self.chat_display.tag_config('user', foreground='#61afef', font=('Consolas', 10, 'bold'))
+        self.chat_display.tag_config('assistant', foreground='#98c379')
+        self.chat_display.tag_config('system', foreground='#e5c07b', font=('Consolas', 9, 'italic'))
+        self.chat_display.tag_config('error', foreground=self.colors['error'])
+        
+        # Input
+        input_frame = tk.Frame(frame, bg=self.colors['bg'])
+        input_frame.pack(fill='x', pady=(10, 0))
+        
+        self.input_text = tk.Text(
+            input_frame,
+            height=3,
+            font=('Segoe UI', 10),
+            bg=self.colors['input'],
+            fg=self.colors['fg'],
+            insertbackground=self.colors['fg'],
+            relief='flat',
+            padx=10,
+            pady=10
+        )
+        self.input_text.pack(side='left', fill='both', expand=True)
+        self.input_text.bind('<Return>', self.on_send_message)
+        self.input_text.bind('<Shift-Return>', lambda e: None)  # Allow newline with Shift+Enter
+        
+        send_btn = tk.Button(
+            input_frame,
+            text="Enviar",
+            command=self.on_send_message,
+            bg=self.colors['accent'],
+            fg=self.colors['fg'],
+            font=('Segoe UI', 10, 'bold'),
+            relief='flat',
+            padx=20,
+            cursor='hand2'
+        )
+        send_btn.pack(side='right', padx=(10, 0))
+        
+        return frame
+    
+    def create_metrics_panel(self, parent) -> ttk.Frame:
+        """Crea panel de métricas en vivo"""
+        frame = ttk.Frame(parent)
+        
+        # Header
+        header = ttk.Label(frame, text="📊 Métricas en Vivo", style='Header.TLabel')
+        header.pack(anchor='w', pady=(0, 10))
+        
+        # Contenedor de métricas
+        metrics_container = tk.Frame(frame, bg=self.colors['panel'], relief='flat')
+        metrics_container.pack(fill='both', expand=True, padx=5, pady=5)
+        
+        # Crear indicadores
+        self.metrics_labels = {}
+        
+        metrics = [
+            ('confidence', '🎯 Confianza', '0.00'),
+            ('surprise', '⚡ Sorpresa', '0.00'),
+            ('attention', '👁️ Atención', '0.00'),
+            ('episodes', '💾 Episodios', '0'),
+            ('concepts', '🧩 Conceptos', '0'),
+            ('wm_slots', '🔄 WM Slots', '0'),
+            ('ticks', '⏱️ Ticks', '0')
+        ]
+        
+        for i, (key, label, default) in enumerate(metrics):
+            # Label
+            lbl = tk.Label(
+                metrics_container,
+                text=label,
+                font=('Segoe UI', 10, 'bold'),
+                bg=self.colors['panel'],
+                fg=self.colors['fg'],
+                anchor='w'
             )
-        
-        grad_norm = self._compute_grad_norm(gradients)
-        is_stable = grad_norm < 100.0
-        
-        return StabilityMetrics(
-            spectral_radius=0.0,
-            max_eigenvalue=0.0,
-            condition_number=1.0,
-            grad_norm=grad_norm,
-            is_stable=is_stable,
-            action_taken='none' if is_stable else 'exploding_gradients'
-        )
-    
-    def _compute_grad_norm(self, gradients: Dict[str, np.ndarray]) -> float:
-        """Calcula norma L2 total de gradientes"""
-        total_norm = 0.0
-        for grad in gradients.values():
-            if grad is not None:
-                total_norm += np.sum(grad ** 2)
-        return float(np.sqrt(total_norm))
-    
-    def clip_gradients(self,
-                      gradients: Dict[str, np.ndarray],
-                      max_norm: Optional[float] = None) -> Dict[str, np.ndarray]:
-        """
-        Clip gradientes por norma global.
-        
-        Args:
-            gradients: gradientes originales
-            max_norm: norma máxima (None = usar config)
-        
-        Returns:
-            gradients_clipped: gradientes clipeados
-        """
-        if max_norm is None:
-            max_norm = self.config.grad_clip_norm
-        
-        # Calcular norma total
-        total_norm = self._compute_grad_norm(gradients)
-        
-        if total_norm <= max_norm:
-            return gradients
-        
-        # Factor de scaling
-        clip_coef = max_norm / (total_norm + 1e-9)
-        
-        # Clip todos los gradientes
-        gradients_clipped = {}
-        for name, grad in gradients.items():
-            if grad is not None:
-                gradients_clipped[name] = grad * clip_coef
-            else:
-                gradients_clipped[name] = grad
-        
-        return gradients_clipped
-    
-    def save_checkpoint(self, 
-                       params: Dict[str, np.ndarray],
-                       step: int,
-                       metrics: StabilityMetrics):
-        """
-        Guarda checkpoint del estado actual.
-        
-        Args:
-            params: parámetros del modelo
-            step: paso de entrenamiento
-            metrics: métricas de estabilidad
-        """
-        checkpoint = {
-            'params': copy.deepcopy(params),
-            'step': step,
-            'metrics': metrics,
-            'spectral_radius': metrics.spectral_radius
-        }
-        
-        self.checkpoints.append(checkpoint)
-        
-        # Mantener solo los N más recientes
-        if len(self.checkpoints) > self.max_checkpoints:
-            self.checkpoints.pop(0)
-    
-    def rollback_to_stable(self) -> Optional[Dict]:
-        """
-        Hace rollback al último checkpoint estable.
-        
-        Returns:
-            checkpoint: checkpoint restaurado (None si no hay)
-        """
-        if not self.checkpoints:
-            return None
-        
-        # Buscar último checkpoint estable
-        for checkpoint in reversed(self.checkpoints):
-            if checkpoint['metrics'].is_stable:
-                self.rollbacks_performed += 1
-                return checkpoint
-        
-        # Si no hay estable, retornar el más antiguo
-        return self.checkpoints[0]
-    
-    def adjust_learning_rate(self,
-                            current_lr: float,
-                            metrics: StabilityMetrics) -> float:
-        """
-        Ajusta learning rate basándose en estabilidad.
-        
-        Args:
-            current_lr: learning rate actual
-            metrics: métricas de estabilidad
-        
-        Returns:
-            new_lr: learning rate ajustado
-        """
-        if metrics.is_stable:
-            return current_lr
-        
-        # Reducir learning rate
-        new_lr = current_lr * self.config.lr_decay_factor
-        new_lr = max(new_lr, self.config.lr_min)
-        
-        self.lr_decays_performed += 1
-        
-        return new_lr
-    
-    def intervene(self,
-                 params: Dict[str, np.ndarray],
-                 gradients: Dict[str, np.ndarray],
-                 learning_rate: float,
-                 metrics: StabilityMetrics,
-                 step: int) -> Tuple[Dict, Dict, float, str]:
-        """
-        Interviene si detecta inestabilidad.
-        
-        Args:
-            params: parámetros actuales
-            gradients: gradientes actuales
-            learning_rate: learning rate actual
-            metrics: métricas de estabilidad
-            step: paso actual
-        
-        Returns:
-            params: parámetros (posiblemente con rollback)
-            gradients: gradientes (posiblemente clipeados)
-            learning_rate: learning rate (posiblemente ajustado)
-            action: acción tomada
-        """
-        if metrics.is_stable:
-            return params, gradients, learning_rate, 'none'
-        
-        # ==========================================
-        # ESTRATEGIA DE INTERVENCIÓN
-        # ==========================================
-        
-        # Nivel 1: Clip gradientes (siempre)
-        gradients_clipped = self.clip_gradients(gradients)
-        action = 'clip_gradients'
-        
-        # Nivel 2: Reducir learning rate
-        if metrics.spectral_radius > self.config.max_spectral_radius * 1.5:
-            learning_rate = self.adjust_learning_rate(learning_rate, metrics)
-            action = 'clip_and_decay_lr'
-        
-        # Nivel 3: Rollback (solo si muy inestable)
-        if (metrics.spectral_radius > self.config.max_spectral_radius * 2.0 
-            and self.config.enable_rollback):
+            lbl.grid(row=i, column=0, sticky='w', padx=10, pady=5)
             
-            checkpoint = self.rollback_to_stable()
-            if checkpoint is not None:
-                params = copy.deepcopy(checkpoint['params'])
-                learning_rate = learning_rate * 0.1  # Reducir agresivamente
-                action = 'rollback'
+            # Value
+            val = tk.Label(
+                metrics_container,
+                text=default,
+                font=('Segoe UI', 12),
+                bg=self.colors['panel'],
+                fg=self.colors['accent'],
+                anchor='e'
+            )
+            val.grid(row=i, column=1, sticky='e', padx=10, pady=5)
+            
+            self.metrics_labels[key] = val
         
-        return params, gradients_clipped, learning_rate, action
+        metrics_container.columnconfigure(1, weight=1)
+        
+        return frame
     
-    def get_statistics(self) -> Dict:
-        """Retorna estadísticas de control de estabilidad"""
-        if not self.metrics_history:
-            return {
-                'total_checks': self.total_checks,
-                'instabilities_detected': self.instabilities_detected
-            }
+    def create_brain_panel(self, parent) -> ttk.Frame:
+        """Crea panel de estado del cerebro"""
+        frame = ttk.Frame(parent)
         
-        recent = self.metrics_history[-100:]
+        # Header
+        header = ttk.Label(frame, text="🧠 Estado del Cerebro", style='Header.TLabel')
+        header.pack(anchor='w', pady=(0, 10))
         
-        return {
-            'total_checks': self.total_checks,
-            'instabilities_detected': self.instabilities_detected,
-            'rollbacks': self.rollbacks_performed,
-            'lr_decays': self.lr_decays_performed,
-            'avg_spectral_radius': np.mean([m.spectral_radius for m in recent]),
-            'max_spectral_radius': np.max([m.spectral_radius for m in recent]),
-            'avg_grad_norm': np.mean([m.grad_norm for m in recent]),
-            'stability_rate': np.mean([m.is_stable for m in recent]),
-            'checkpoints_saved': len(self.checkpoints)
+        # Contenedor
+        brain_container = tk.Frame(frame, bg=self.colors['panel'], relief='flat')
+        brain_container.pack(fill='both', expand=True, padx=5, pady=5)
+        
+        # Barra de progreso de confianza
+        conf_label = tk.Label(
+            brain_container,
+            text="Confianza del Sistema",
+            font=('Segoe UI', 9),
+            bg=self.colors['panel'],
+            fg=self.colors['fg']
+        )
+        conf_label.pack(anchor='w', padx=10, pady=(10, 5))
+        
+        self.confidence_bar = ttk.Progressbar(
+            brain_container,
+            length=200,
+            mode='determinate',
+            maximum=100
+        )
+        self.confidence_bar.pack(fill='x', padx=10, pady=(0, 15))
+        
+        # Estado de fases
+        phases_label = tk.Label(
+            brain_container,
+            text="Estado de Fases",
+            font=('Segoe UI', 9, 'bold'),
+            bg=self.colors['panel'],
+            fg=self.colors['fg']
+        )
+        phases_label.pack(anchor='w', padx=10, pady=(10, 5))
+        
+        self.phase_indicators = {}
+        phases = ['Sensing', 'Attention', 'Memory', 'Decision', 'Governance']
+        
+        for phase in phases:
+            phase_frame = tk.Frame(brain_container, bg=self.colors['panel'])
+            phase_frame.pack(fill='x', padx=10, pady=2)
+            
+            indicator = tk.Label(
+                phase_frame,
+                text="●",
+                font=('Segoe UI', 12),
+                bg=self.colors['panel'],
+                fg='gray'
+            )
+            indicator.pack(side='left')
+            
+            label = tk.Label(
+                phase_frame,
+                text=phase,
+                font=('Segoe UI', 9),
+                bg=self.colors['panel'],
+                fg=self.colors['fg']
+            )
+            label.pack(side='left', padx=5)
+            
+            self.phase_indicators[phase] = indicator
+        
+        # Log de eventos
+        log_label = tk.Label(
+            brain_container,
+            text="📝 Log de Eventos",
+            font=('Segoe UI', 9, 'bold'),
+            bg=self.colors['panel'],
+            fg=self.colors['fg']
+        )
+        log_label.pack(anchor='w', padx=10, pady=(15, 5))
+        
+        self.event_log = scrolledtext.ScrolledText(
+            brain_container,
+            height=10,
+            font=('Consolas', 8),
+            bg='#1a1a1a',
+            fg='#b0b0b0',
+            state='disabled',
+            relief='flat',
+            padx=5,
+            pady=5
+        )
+        self.event_log.pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        
+        return frame
+    
+    def create_control_panel(self, parent) -> ttk.Frame:
+        """Crea panel de controles"""
+        frame = tk.Frame(parent, bg=self.colors['bg'])
+        
+        # Botones de control
+        btn_style = {
+            'font': ('Segoe UI', 9),
+            'relief': 'flat',
+            'cursor': 'hand2',
+            'padx': 15,
+            'pady': 5
         }
-
-
-# =========================
-# Testing
-# =========================
-
-if __name__ == "__main__":
-    print("=== Test de Control de Estabilidad ===\n")
-    
-    np.random.seed(42)
-    
-    # Crear controlador
-    controller = StabilityController(
-        config=StabilityConfig(
-            max_spectral_radius=1.0,
-            grad_clip_norm=1.0,
-            enable_rollback=True
-        )
-    )
-    
-    print("Configuración:")
-    print(f"  Max spectral radius: {controller.config.max_spectral_radius}")
-    print(f"  Grad clip norm: {controller.config.grad_clip_norm}")
-    
-    # Simular secuencia de entrenamiento
-    print("\n--- Simulación de Entrenamiento ---\n")
-    
-    learning_rate = 0.01
-    params = {'W': np.random.randn(10, 10) * 0.1}
-    
-    for step in range(15):
-        # Matriz recurrente (con estabilidad variable)
-        if step < 5:
-            # Estable
-            W_rec = np.random.randn(20, 20) * 0.3
-        elif step < 10:
-            # Ligeramente inestable
-            W_rec = np.random.randn(20, 20) * 0.8
-        else:
-            # Muy inestable
-            W_rec = np.random.randn(20, 20) * 1.5
         
-        # Gradientes simulados
-        gradients = {
-            'W': np.random.randn(10, 10) * (0.1 if step < 10 else 2.0)
+        stats_btn = tk.Button(
+            frame,
+            text="📊 Estadísticas",
+            command=self.show_statistics,
+            bg=self.colors['accent'],
+            fg=self.colors['fg'],
+            **btn_style
+        )
+        stats_btn.pack(side='left', padx=5)
+        
+        sleep_btn = tk.Button(
+            frame,
+            text="💤 Forzar Sueño",
+            command=self.force_sleep,
+            bg='#9c27b0',
+            fg=self.colors['fg'],
+            **btn_style
+        )
+        sleep_btn.pack(side='left', padx=5)
+        
+        clear_btn = tk.Button(
+            frame,
+            text="🗑️ Limpiar Chat",
+            command=self.clear_chat,
+            bg='#607d8b',
+            fg=self.colors['fg'],
+            **btn_style
+        )
+        clear_btn.pack(side='left', padx=5)
+        
+        config_btn = tk.Button(
+            frame,
+            text="⚙️ Configuración",
+            command=self.show_config,
+            bg='#607d8b',
+            fg=self.colors['fg'],
+            **btn_style
+        )
+        config_btn.pack(side='left', padx=5)
+        
+        # Info de versión
+        version_label = tk.Label(
+            frame,
+            text="v1.0.0 | FASE 1+2+3 Completas",
+            font=('Segoe UI', 8),
+            bg=self.colors['bg'],
+            fg='gray'
+        )
+        version_label.pack(side='right')
+        
+        return frame
+    
+    def initialize_system_async(self):
+        """Inicializa el sistema en un thread separado"""
+        def init():
+            try:
+                self.log_event("Iniciando sistema...")
+                
+                llm_config = LLMConfig(
+                    provider="ollama",
+                    base_url="http://localhost:11434",
+                    model="gemma2:2b",
+                    temperature=0.7
+                )
+                
+                brain_config = CompleteBrainConfig(
+                    dim_observation=384,
+                    dim_latent=64,
+                    dim_working_memory=32,
+                    dim_action=16,
+                    max_episodes=500,
+                    max_concepts=100,
+                    enable_learning=True,
+                    enable_homeostasis=True,
+                    enable_sleep=True,
+                    sleep_interval=50
+                )
+                
+                self.system = GovernedLocalLLM(llm_config, brain_config)
+                
+                self.root.after(0, lambda: self.status_label.config(
+                    text="✅ Sistema Listo",
+                    foreground=self.colors['success']
+                ))
+                
+                self.log_event("✅ Sistema inicializado correctamente")
+                self.add_chat_message("system", "Sistema inicializado. ¡Listo para conversar!")
+                
+            except Exception as e:
+                self.root.after(0, lambda: self.status_label.config(
+                    text="❌ Error de Inicialización",
+                    foreground=self.colors['error']
+                ))
+                self.log_event(f"❌ Error: {str(e)}")
+                messagebox.showerror("Error", f"No se pudo inicializar el sistema:\n{str(e)}")
+        
+        thread = threading.Thread(target=init, daemon=True)
+        thread.start()
+    
+    def on_send_message(self, event=None):
+        """Maneja envío de mensaje"""
+        if event and event.keysym == 'Return' and not event.state & 0x1:  # Sin Shift
+            message = self.input_text.get('1.0', 'end-1c').strip()
+            
+            if not message:
+                return 'break'
+            
+            if not self.system:
+                messagebox.showwarning("Aviso", "El sistema aún no está listo. Espera unos segundos.")
+                return 'break'
+            
+            if self.processing:
+                messagebox.showinfo("Info", "Ya hay un mensaje en proceso. Espera a que termine.")
+                return 'break'
+            
+            # Limpiar input
+            self.input_text.delete('1.0', 'end')
+            
+            # Mostrar mensaje del usuario
+            self.add_chat_message("user", message)
+            
+            # Procesar en thread separado
+            self.processing = True
+            thread = threading.Thread(target=self.process_message, args=(message,), daemon=True)
+            thread.start()
+            
+            return 'break'
+    
+    def process_message(self, message: str):
+        """Procesa mensaje en segundo plano"""
+        try:
+            self.log_event(f"Procesando: {message[:30]}...")
+            
+            # Actualizar fases
+            self.update_phase_indicators('all', 'processing')
+            
+            # Procesar con el sistema
+            result = self.system.chat(message)
+            
+            # Actualizar UI
+            self.root.after(0, lambda: self.handle_response(result))
+            
+        except Exception as e:
+            self.root.after(0, lambda: self.add_chat_message("error", f"Error: {str(e)}"))
+            self.log_event(f"❌ Error en procesamiento: {str(e)}")
+        
+        finally:
+            self.processing = False
+            self.update_phase_indicators('all', 'idle')
+    
+    def handle_response(self, result: Dict):
+        """Maneja respuesta del sistema"""
+        if result['approved']:
+            self.add_chat_message("assistant", result['response'])
+            self.log_event(f"✅ Respuesta aprobada (conf: {result['brain_state']['metrics']['confidence']:.2f})")
+        else:
+            self.add_chat_message("error", result['response'])
+            self.log_event(f"⚠️ Respuesta bloqueada")
+        
+        # Actualizar métricas
+        self.update_metrics(result['brain_state']['metrics'])
+        
+        # Info adicional
+        info = f"⏱️ {result['elapsed_time']:.2f}s | 🎯 Confianza: {result['brain_state']['metrics']['confidence']:.2f}"
+        self.add_chat_message("system", info)
+    
+    def add_chat_message(self, sender: str, message: str):
+        """Añade mensaje al chat"""
+        self.chat_display.config(state='normal')
+        
+        if sender == "user":
+            self.chat_display.insert('end', "🧑 Tú: ", 'user')
+        elif sender == "assistant":
+            self.chat_display.insert('end', "🤖 IA: ", 'assistant')
+        elif sender == "system":
+            self.chat_display.insert('end', "ℹ️ ", 'system')
+        elif sender == "error":
+            self.chat_display.insert('end', "⚠️ ", 'error')
+        
+        self.chat_display.insert('end', f"{message}\n\n", sender)
+        self.chat_display.see('end')
+        self.chat_display.config(state='disabled')
+    
+    def update_metrics(self, metrics: Dict):
+        """Actualiza panel de métricas"""
+        self.metrics_labels['confidence'].config(text=f"{metrics.get('confidence', 0):.2f}")
+        self.metrics_labels['surprise'].config(text=f"{metrics.get('surprise', 0):.2f}")
+        self.metrics_labels['attention'].config(text=f"{metrics.get('attention_focus', 0):.2f}")
+        self.metrics_labels['episodes'].config(text=str(metrics.get('episodes', 0)))
+        self.metrics_labels['concepts'].config(text=str(metrics.get('concepts', 0)))
+        self.metrics_labels['wm_slots'].config(text=str(metrics.get('wm_slots', 0)))
+        self.metrics_labels['ticks'].config(text=str(metrics.get('tick', 0)))
+        
+        # Actualizar barra de confianza
+        confidence_pct = metrics.get('confidence', 0) * 100
+        self.confidence_bar['value'] = confidence_pct
+    
+    def update_phase_indicators(self, phase: str, state: str):
+        """Actualiza indicadores de fase"""
+        colors = {
+            'idle': 'gray',
+            'processing': self.colors['warning'],
+            'success': self.colors['success'],
+            'error': self.colors['error']
         }
         
-        # Verificar estabilidad
-        metrics = controller.check_stability(
-            recurrent_matrix=W_rec,
-            gradients=gradients
-        )
-        
-        # Guardar checkpoint si estable
-        if metrics.is_stable and step % 2 == 0:
-            controller.save_checkpoint(params, step, metrics)
-        
-        # Intervenir si necesario
-        params, gradients, learning_rate, action = controller.intervene(
-            params, gradients, learning_rate, metrics, step
-        )
-        
-        status = "✓ STABLE" if metrics.is_stable else "✗ UNSTABLE"
-        
-        print(f"Step {step}: {status}")
-        print(f"  ρ(W) = {metrics.spectral_radius:.3f}")
-        print(f"  ‖∇‖ = {metrics.grad_norm:.3f}")
-        print(f"  η = {learning_rate:.5f}")
-        
-        if action != 'none':
-            print(f"  ⚠ Action: {action}")
-        
-        print()
-    
-    # Estadísticas finales
-    print("\n--- Estadísticas Finales ---")
-    stats = controller.get_statistics()
-    
-    for key, value in stats.items():
-        if isinstance(value, float):
-            print(f"  {key}: {value:.3f}")
-        else:
-            print(f"  {key}: {value}")
-    
-    print("\n✅ Control de Estabilidad funcional")
+        if phase == 'all':
+            for indicator in self.phase_indicators.values():
+                indicator.config(f
