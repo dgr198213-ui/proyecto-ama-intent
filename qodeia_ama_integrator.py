@@ -650,6 +650,115 @@ class BDCSearchEngine(BaseEngine):
         results.sort(key=lambda x: x["score"], reverse=True)
         return {"bdc": {"results": results[:k]}}
 '''
+        self._write_file(self.qodeia / "bdc_search.py", bdc_content)
+        
+        # DMD Engine
+        dmd_content = '''from __future__ import annotations
+from typing import Dict, Any, List
+from .base import BaseEngine
+
+class DMDEngine(BaseEngine):
+    """
+    DMD: Decision Matrix Driver
+    
+    Selecciona la mejor alternativa basada en pesos y criterios.
+    """
+    name = "DMD"
+    version = "1.0.0"
+    
+    def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        alternatives = payload.get("alternatives", [])
+        weights = payload.get("weights", {"relevancia": 1.0})
+        
+        if not alternatives:
+            return {"dmd": {"best": None, "scores": []}}
+            
+        scored = []
+        for alt in alternatives:
+            score = 0.0
+            for criterion, weight in weights.items():
+                score += alt.get("metrics", {}).get(criterion, 0.5) * weight
+            
+            scored.append({
+                "name": alt.get("name", "unknown"),
+                "score": score,
+                "data": alt
+            })
+            
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return {"dmd": {"best": scored[0], "scores": scored}}
+'''
+        self._write_file(self.qodeia / "dmd.py", dmd_content)
+        
+        # Adaptive Pruning Engine
+        pruning_content = '''from __future__ import annotations
+from typing import Dict, Any, List
+from .base import BaseEngine
+
+class AdaptivePruningEngine(BaseEngine):
+    """
+    Adaptive Pruning: Consolidación inteligente de memoria
+    """
+    name = "Adaptive-Pruning"
+    version = "1.0.0"
+    
+    def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        items = payload.get("items", [])
+        threshold = payload.get("threshold", 0.5)
+        
+        kept = [it for it in items if it.get("score", 1.0) >= threshold]
+        pruned = [it for it in items if it.get("score", 1.0) < threshold]
+        
+        return {
+            "pruning": {
+                "original_count": len(items),
+                "kept_count": len(kept),
+                "pruned_count": len(pruned),
+                "threshold": threshold
+            }
+        }
+'''
+        self._write_file(self.qodeia / "adaptive_pruning.py", pruning_content)
+        
+        # LFPI Engine
+        lfpi_content = '''from __future__ import annotations
+from typing import Dict, Any
+from .base import BaseEngine
+from .utils import clamp
+
+class LFPIEngine(BaseEngine):
+    """
+    LFPI: Linear Functional Performance Index
+    """
+    name = "LFPI"
+    version = "1.0.0"
+    
+    def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        gain = payload.get("gain", 0.0)
+        loss = payload.get("loss", 0.0)
+        feedback = payload.get("feedback", 0.0)
+        amplitude = payload.get("amplitude", 1.0)
+        
+        value = 100 * (gain - loss + amplitude * feedback)
+        score = clamp(value, 0, 100)
+        
+        level = (
+            "excellent" if score >= 80 else
+            "good" if score >= 60 else
+            "fair" if score >= 40 else
+            "poor"
+        )
+        
+        return {
+            "lfpi": {
+                "value": score,
+                "level": level,
+                "gain": gain,
+                "loss": loss
+            }
+        }
+'''
+        self._write_file(self.qodeia / "lfpi.py", lfpi_content)
 
     def _write_file(self, path: Path, content: str):
         """Escribe contenido en archivo y registra estadísticas"""
@@ -661,6 +770,7 @@ class BDCSearchEngine(BaseEngine):
         """Ejecuta proceso completo de integración"""
         self.analyze_structure()
         self.create_qodeia_core()
+        self.create_tier1_engines()
         self.log_action("Integración completada con éxito")
         print(f"\nEstadísticas: {self.stats}")
 
