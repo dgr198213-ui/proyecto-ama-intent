@@ -93,6 +93,13 @@ proyecto-ama-intent/
 └── DASHBOARD_README.md      # Documentación detallada del Dashboard
 ```
 
+## 🧠 Fundamentos Teóricos: El Sistema SDDCS
+
+El núcleo de AMA-Intent v2.0 implementa el **Sistema de Diccionario Dinámico de Compensación Estocástica (SDDCS)**, basado en principios de geometría diferencial y teoría de la información para garantizar la preservación de la información mutua ante el ruido.
+
+Para más detalles, consulte:
+- **docs/SDDCS_FORMULATION.md**: Formulación matemática completa del sistema.
+
 ## 📚 Documentación Adicional
 
 Para una comprensión más profunda de los componentes, consulte los siguientes documentos:
