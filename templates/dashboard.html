@@ -113,6 +113,24 @@
                 </div>
             </div>
 
+            <!-- Interactive Console -->
+            <div class="bg-white rounded-xl shadow p-6 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-900">AMA Terminal</h2>
+                    <div class="flex space-x-2">
+                        <span class="flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                        <span class="text-xs text-gray-500 font-mono">SYSTEM ONLINE</span>
+                    </div>
+                </div>
+                <div id="ama-console-container">
+                    <!-- Console will be initialized here by console.js -->
+                    <div class="animate-pulse bg-gray-100 h-64 rounded-lg"></div>
+                </div>
+            </div>
+
             <!-- Recent Activity -->
             <div class="bg-white rounded-xl shadow p-6">
                 <div class="flex justify-between items-center mb-4">
@@ -143,6 +161,7 @@
         </footer>
     </div>
 
+    <script src="/static/js/console.js"></script>
     <script>
         async function refreshData() {
             const response = await fetch('/api/overview');

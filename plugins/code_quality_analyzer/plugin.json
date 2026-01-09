@@ -1,0 +1,15 @@
+{
+  "name": "Code Quality Analyzer",
+  "version": "1.0.0",
+  "author": "AMA-Intent Team",
+  "description": "Analiza la complejidad ciclomática y adherencia a PEP8 en proyectos Python.",
+  "plugin_type": "debug_assistant",
+  "entry_point": "code_quality_analyzer.main.QualityPlugin",
+  "dependencies": ["pylint", "mccabe"],
+  "min_dashboard_version": "2.0.0",
+  "permissions": ["read"],
+  "settings_schema": {
+    "strict_mode": {"type": "boolean", "label": "Modo Estricto", "default": false},
+    "max_complexity": {"type": "integer", "label": "Complejidad Máxima", "default": 10}
+  }
+}

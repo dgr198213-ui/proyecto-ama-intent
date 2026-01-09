@@ -1,0 +1,15 @@
+{
+  "name": "Wellness Assistant",
+  "version": "1.0.0",
+  "author": "AMA-Intent Team",
+  "description": "Asistente de bienestar que sugiere pausas activas y ejercicios de ergonomía durante el desarrollo.",
+  "plugin_type": "utility",
+  "entry_point": "wellness_assistant.main.WellnessPlugin",
+  "dependencies": [],
+  "min_dashboard_version": "2.0.0",
+  "permissions": ["read"],
+  "settings_schema": {
+    "break_interval": {"type": "integer", "label": "Intervalo de pausa (min)", "default": 50},
+    "exercise_type": {"type": "string", "label": "Tipo de ejercicio", "default": "estiramiento"}
+  }
+}

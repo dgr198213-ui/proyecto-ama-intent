@@ -18,9 +18,16 @@ El Dashboard v2.0 representa una actualización fundamental, enfocada en la pers
 | :--- | :--- | :--- |
 | **Persistencia con SQLite** | Migración de datos de configuración y usuario de JSON a una base de datos relacional (SQLAlchemy + SQLite). | Mayor integridad, escalabilidad y gestión de datos multiusuario. |
 | **Autenticación JWT** | Implementación de un sistema de login seguro basado en JWT y bcrypt para el hashing de contraseñas. | Protección de acceso y aislamiento de datos por usuario. |
+| **AMA Terminal** | Consola interactiva integrada con comandos preestablecidos (`status`, `plugins`, `analyze`, `todo`, `backup`). | Control rápido del sistema y ejecución de tareas sin salir de la interfaz. |
+| **Sistema de Plugins** | Arquitectura extensible que permite añadir nuevas funcionalidades dinámicamente. | Personalización total según las necesidades del usuario. |
 | **Code Companion** | Módulos de asistencia de código para *debugging*, análisis de calidad y generación de tests unitarios. | Aumento de la productividad y reducción del tiempo de *debugging*. |
 | **Content Creator** | Herramientas para la generación de borradores de blog, optimización SEO y adaptación a redes sociales. | Automatización del flujo de trabajo de creación de contenido. |
-| **Arquitectura Modular** | Estructura preparada para la integración con el Core de AMA-Intent, sistemas de *plugins* y conectores externos (e.g., GitHub). | Extensibilidad y futuro crecimiento del sistema. |
+
+### 🔌 Plugins Incluidos (v2.0)
+
+*   **Productivity Tracker**: Monitorea el tiempo dedicado a proyectos y sugiere optimizaciones de flujo de trabajo.
+*   **Code Quality Analyzer**: Analiza la complejidad ciclomática y adherencia a PEP8 en proyectos Python.
+*   **Wellness Assistant**: Asistente de bienestar que sugiere pausas activas y ejercicios de ergonomía.
 
 ## 🛠️ Instalación y Uso
 
@@ -80,12 +87,13 @@ proyecto-ama-intent/
 ├── control/                 # Módulos de Control del Core
 ├── decision/                # Módulos de Decisión del Core
 ├── memory/                  # Módulos de Memoria del Core
+├── plugins/                 # Plugins del Dashboard (Productivity, Quality, Wellness)
 ├── src/                     # Código fuente principal
 │   ├── code_companion/      # Módulos de asistencia de código
 │   ├── content_creator/     # Módulos de creación de contenido
 │   └── personal_dashboard/  # Módulos del Dashboard v2.0 (Auth, DB, Web UI)
 ├── templates/               # Templates HTML (Dashboard, Login, Debug, etc.)
-├── static/                  # Archivos estáticos (CSS, JS)
+├── static/                  # Archivos estáticos (CSS, JS, Terminal)
 ├── data/                    # Base de datos SQLite y backups
 ├── scripts/                 # Scripts de migración y utilidad
 ├── ama_personal_dashboard.py# Punto de entrada del Dashboard
