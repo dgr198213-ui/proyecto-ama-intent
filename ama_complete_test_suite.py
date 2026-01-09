@@ -521,6 +521,33 @@ class AMATestSuite:
         
         print(f"\n  → Rendimiento aceptable")
     
+    def test_06_rocketml_rml(self):
+        """Verifica el motor RocketML-RML"""
+        print("\n[6/10] Probando RocketML-RML...")
+        
+        from qodeia_engines.rocketml_rml import RocketMLRMLEngine
+        import numpy as np
+        
+        engine = RocketMLRMLEngine(embedding_dim=128)
+        
+        # Test Inferencia
+        res = engine.run({"op": "inference", "embedding": np.random.randn(128).tolist()})
+        assert res.ok, "Inferencia RocketML falló"
+        print(f"  ✓ Inferencia: reward={res.data['reward']:.4f}")
+        
+        # Test Seguridad (Ataque)
+        attack = (np.random.randn(128) * 10.0).tolist()
+        res = engine.run({"op": "inference", "embedding": attack})
+        assert not res.data.get("ok", True), "Seguridad RocketML no detectó ataque"
+        print(f"  ✓ Seguridad: Ataque bloqueado ({res.data['threat']})")
+        
+        # Test Entrenamiento
+        res = engine.run({"op": "train", "data": []})
+        assert res.ok, "Entrenamiento RocketML falló"
+        print(f"  ✓ Entrenamiento: loss={res.data['loss']:.4f}")
+        
+        print(f"\n  → Motor RocketML-RML funcional")
+
     def run_all(self):
         """Ejecuta todos los tests de la suite"""
         print("\n" + "="*70)
@@ -532,6 +559,7 @@ class AMATestSuite:
         self.run_test("Motores Individuales", self.test_03_individual_engines)
         self.run_test("Integración FASE", self.test_04_fase_integration)
         self.run_test("Pipeline Completo", self.test_05_full_pipeline)
+        self.run_test("RocketML-RML", self.test_06_rocketml_rml)
         
         passed = len([r for r in self.results if r.passed])
         total = len(self.results)

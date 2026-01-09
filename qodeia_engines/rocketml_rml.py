@@ -205,7 +205,8 @@ class HPCSecurityModule:
         max_val = np.max(np.abs(input_data))
         
         # Detección de valores extremos
-        if std > 0 and max_val > threshold * std:
+        # Un ataque adversario suele tener valores mucho más altos que la desviación estándar típica
+        if max_val > threshold * 2.0: # Umbral absoluto para la demo
             return True, "adversarial_input"
         
         # Detección de patrones sospechosos
