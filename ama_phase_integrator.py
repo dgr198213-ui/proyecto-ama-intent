@@ -34,6 +34,7 @@ try:
     from qodeia_engines.dmd import DMDEngine
     from qodeia_engines.adaptive_pruning import AdaptivePruningEngine
     from qodeia_engines.lfpi import LFPIEngine
+    from qodeia_engines.rocketml_rml import RocketMLRMLEngine
 except ImportError:
     print("ERROR: Ejecutar primero qodeia_ama_integrator.py")
     sys.exit(1)
@@ -94,6 +95,7 @@ class AMAPhaseIntegrator:
         self.bus.register(DMDEngine())
         self.bus.register(AdaptivePruningEngine())
         self.bus.register(LFPIEngine())
+        self.bus.register(RocketMLRMLEngine())
     
     # ========================================================================
     # FASE 1: PROCESAMIENTO INICIAL
