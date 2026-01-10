@@ -1,0 +1,98 @@
+{
+  "name": "knowledge_graph",
+  "version": "1.0.0",
+  "display_name": "Knowledge Graph & GraphRAG",
+  "description": "Construye KG del proyecto y responde queries con GraphRAG",
+  
+  "configuration": {
+    "project_path": {
+      "type": "string",
+      "default": "./",
+      "description": "Ruta del proyecto a analizar"
+    },
+    "file_patterns": {
+      "type": "array",
+      "default": ["**/*.py"],
+      "description": "Patrones de archivos a incluir"
+    },
+    "auto_rebuild": {
+      "type": "boolean",
+      "default": false,
+      "description": "Reconstruir KG automáticamente"
+    },
+    "rebuild_interval_hours": {
+      "type": "integer",
+      "default": 24,
+      "description": "Intervalo de reconstrucción en horas"
+    },
+    "enable_rdf_export": {
+      "type": "boolean",
+      "default": true,
+      "description": "Exportar a formato RDF"
+    },
+    "max_query_depth": {
+      "type": "integer",
+      "default": 2,
+      "description": "Profundidad máxima de búsqueda en el grafo"
+    },
+    "use_ama_core": {
+      "type": "boolean",
+      "default": true,
+      "description": "Integrar con componentes del core AMA-Intent"
+    }
+  },
+  
+  "api_endpoints": [
+    {
+      "path": "/api/v1/kg/query",
+      "method": "POST",
+      "handler": "api.endpoint_query",
+      "description": "Ejecuta query GraphRAG"
+    },
+    {
+      "path": "/api/v1/kg/analyze_file",
+      "method": "POST",
+      "handler": "api.endpoint_analyze_file",
+      "description": "Analiza archivo con contexto del KG"
+    },
+    {
+      "path": "/api/v1/kg/rebuild",
+      "method": "POST",
+      "handler": "api.endpoint_rebuild",
+      "description": "Reconstruye el KG"
+    },
+    {
+      "path": "/api/v1/kg/overview",
+      "method": "GET",
+      "handler": "api.endpoint_overview",
+      "description": "Overview del proyecto"
+    },
+    {
+      "path": "/api/v1/kg/refactor_suggestions",
+      "method": "GET",
+      "handler": "api.endpoint_refactoring_suggestions",
+      "description": "Sugerencias de refactorización"
+    }
+  ],
+  
+  "dashboard_widgets": [
+    {
+      "id": "kg_visualizer",
+      "title": "Knowledge Graph Visualizer",
+      "component": "widgets.KGVisualizer",
+      "size": "large"
+    },
+    {
+      "id": "graphrag_query",
+      "title": "GraphRAG Query Interface",
+      "component": "widgets.QueryInterface",
+      "size": "medium"
+    },
+    {
+      "id": "code_metrics",
+      "title": "Code Metrics Dashboard",
+      "component": "widgets.MetricsDashboard",
+      "size": "medium"
+    }
+  ]
+}
