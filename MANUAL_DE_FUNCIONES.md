@@ -953,4 +953,17 @@ loss_fn = CompositeLoss()
 
 total_loss, components = loss_fn.compute_total_loss(
     prediction_metrics={'y_predicted': y_pred, 'y_actual': y_act},
-    memory_metrics={'retrieval_accuracy': 0.8, 'consolidation_ra
+    memory_metrics={'retrieval_accuracy': 0.8, 'consolidation_rate': 0.95}
+)
+```
+
+---
+
+## 7. Conclusión Técnica
+
+El sistema **AMA-Intent** representa una arquitectura de vanguardia en el campo de la IA biomimética. A través de la integración de componentes como el **Long Horizon Agent** y el optimizador **MuonClip**, el sistema no solo emula el razonamiento humano, sino que lo potencia con una estabilidad y eficiencia computacional superiores.
+
+La modularidad del sistema, dividida en fases perceptivas, de memoria y de aprendizaje, permite una evolución continua del conocimiento (I₀) sin comprometer la integridad de la intención original del usuario. Esta documentación sirve como guía base para desarrolladores que deseen extender las capacidades del cerebro artificial o integrar nuevos motores de decisión.
+
+---
+**Fin del Manual de Funciones**

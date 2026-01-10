@@ -54,3 +54,18 @@ plugins/knowledge_graph/
 ```bash
 pip install networkx rdflib gitpython
 ```
+
+### 2. Configuración
+El plugin se configura a través del archivo `plugin.json` o mediante la interfaz del Dashboard. Los parámetros principales incluyen:
+- `project_path`: Directorio raíz del proyecto a analizar.
+- `file_patterns`: Lista de extensiones a incluir (por defecto `["**/*.py"]`).
+- `max_query_depth`: Profundidad de búsqueda en el grafo para respuestas GraphRAG.
+
+### 3. Uso de la API
+El plugin expone varios endpoints para interactuar con el grafo:
+- `POST /api/v1/kg/query`: Realiza una consulta semántica al grafo.
+- `POST /api/v1/kg/rebuild`: Fuerza la reconstrucción del grafo de conocimiento.
+- `GET /api/v1/kg/overview`: Obtiene estadísticas del proyecto analizado.
+
+### 4. Integración con AMA-Intent
+Cuando `use_ama_core` está habilitado, el plugin utiliza el motor de atención del core para priorizar nodos del grafo que son más relevantes para la intención actual (I₀).
