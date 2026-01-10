@@ -22,12 +22,14 @@ El Dashboard v2.0 representa una actualización fundamental, enfocada en la pers
 | **Sistema de Plugins** | Arquitectura extensible que permite añadir nuevas funcionalidades dinámicamente. | Personalización total según las necesidades del usuario. |
 | **Code Companion** | Módulos de asistencia de código para *debugging*, análisis de calidad y generación de tests unitarios. | Aumento de la productividad y reducción del tiempo de *debugging*. |
 | **Content Creator** | Herramientas para la generación de borradores de blog, optimización SEO y adaptación a redes sociales. | Automatización del flujo de trabajo de creación de contenido. |
+| **Knowledge Graph & GraphRAG** | Construcción de grafos de conocimiento del código y sistema de consultas inteligentes. | Análisis profundo de arquitectura y dependencias mediante lenguaje natural. |
 
 ### 🔌 Plugins Incluidos (v2.0)
 
 *   **Productivity Tracker**: Monitorea el tiempo dedicado a proyectos y sugiere optimizaciones de flujo de trabajo.
 *   **Code Quality Analyzer**: Analiza la complejidad ciclomática y adherencia a PEP8 en proyectos Python.
 *   **Wellness Assistant**: Asistente de bienestar que sugiere pausas activas y ejercicios de ergonomía.
+*   **Knowledge Graph & GraphRAG**: Construye un grafo semántico del proyecto y permite realizar consultas complejas sobre la estructura del código usando IA contextualizada.
 
 ## 🛠️ Instalación y Uso
 
@@ -87,7 +89,7 @@ proyecto-ama-intent/
 ├── control/                 # Módulos de Control del Core
 ├── decision/                # Módulos de Decisión del Core
 ├── memory/                  # Módulos de Memoria del Core
-├── plugins/                 # Plugins del Dashboard (Productivity, Quality, Wellness)
+├── plugins/                 # Plugins del Dashboard (Productivity, Quality, Wellness, Knowledge Graph)
 ├── src/                     # Código fuente principal
 │   ├── code_companion/      # Módulos de asistencia de código
 │   ├── content_creator/     # Módulos de creación de contenido

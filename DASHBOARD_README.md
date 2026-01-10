@@ -80,6 +80,7 @@ proyecto-ama-intent/
 1. Implementar el panel de Analytics completo.
 2. Finalizar los conectores de integración con GitHub.
 3. Expandir el soporte multilenguaje en el Debug Assistant.
+4. Integrar el sistema de Knowledge Graph y GraphRAG para análisis profundo de código.
 
 ## Actualización v2.1: Ecosistema de Plugins e Integraciones
 
@@ -88,6 +89,13 @@ El Dashboard ahora soporta la carga dinámica de plugins. Puedes extender las ca
 - **Ubicación**: Carpeta `plugins/`
 - **Estructura**: Cada plugin debe tener un `plugin.json` y un punto de entrada en Python.
 - **API**: Los plugins pueden acceder a servicios de base de datos, analíticas y herramientas de IA.
+
+### 🧠 Knowledge Graph & GraphRAG (v2.3)
+Nueva capacidad avanzada para el análisis de proyectos mediante grafos de conocimiento semánticos.
+- **Análisis AST**: Construcción automática de grafos a partir del código fuente.
+- **GraphRAG**: Consultas en lenguaje natural sobre la arquitectura y dependencias.
+- **Análisis de Impacto**: Predicción de efectos secundarios al modificar componentes.
+- **Detección de Patrones**: Identificación automática de patrones de diseño (Singleton, Factory, etc.).
 
 ### 🐙 Integración con GitHub
 Conector inicial para sincronizar proyectos y automatizar flujos de trabajo con repositorios de GitHub.
