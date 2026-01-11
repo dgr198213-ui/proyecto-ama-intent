@@ -14,7 +14,7 @@ LABEL maintainer="AMA-Intent Team <team@ama-intent.org>"
 LABEL version="2.0-sddcs"
 
 # Instalar dependencias de sistema necesarias para compilación
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends libffi-dev libssl-dev \
     build-essential \
     gcc \
     g++ \
@@ -55,7 +55,7 @@ LABEL org.opencontainers.image.version="2.0"
 RUN groupadd -r ama && useradd -r -g ama -u 1000 ama
 
 # Instalar solo dependencias runtime necesarias
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends libffi-dev libssl-dev \
     curl \
     ca-certificates \
     sqlite3 \
