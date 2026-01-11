@@ -53,3 +53,18 @@ uploads/
 .env
 .env.local
 .env.*.local
+# Additional exclusions
+benchmarks/
+tests/
+docs/
+*.md
+monitoring/
+training/
+utils/
+ama_data/
+backups/
+logs/
+uploads/
+data/
+static/js/*.map
+static/css/*.map

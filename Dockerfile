@@ -34,7 +34,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements_dashboard.txt && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && pip install --no-cache-dir -r requirements.txt
 
 # Si SDDCS está habilitado, no necesitamos deps adicionales (usa stdlib)
 RUN if [ "$ENABLE_SDDCS" = "true" ]; then \
