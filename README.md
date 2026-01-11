@@ -55,6 +55,8 @@ AMA-Intent v2.0 ahora incorpora el **protocolo SDDCS-Kaprekar**, un sistema de s
 | **Synthetic Data Verification** | Firma y verificación de datos sintéticos generados por el Agentic Data Synthesizer. | Garantía de integridad de datos de entrenamiento sintéticos. |
 | **Plugin State Persistence** | Persistencia ligera de estado de plugins con fingerprints de 4 bytes. | Reducción de overhead de almacenamiento manteniendo integridad total. |
 | **JWT with Rolling Seeds** | Autenticación JWT con semillas rotativas basadas en Kaprekar. | Tokens de sesión más seguros con rotación automática de claves. |
+| **Automated Backup System** | Sistema de backup con verificación de integridad y soporte S3. | Garantía de recuperación ante desastres y persistencia de datos. |
+| **Prometheus & Grafana** | Stack de monitoreo completo con métricas personalizadas SDDCS. | Visibilidad total del rendimiento y salud del sistema en tiempo real. |
 
 La integración SDDCS-Kaprekar proporciona una capa adicional de seguridad y confiabilidad al sistema, especialmente crítica para operaciones de larga duración del Long Horizon Agent.
 
@@ -125,6 +127,8 @@ proyecto-ama-intent/
 ├── training/                # 🏋️ Módulos de entrenamiento (Nuevo: MuonClip Optimizer)
 │   └── optimizers/
 ├── integrations/            # 🔐 Integraciones externas (Nuevo: SDDCS-Kaprekar)
+├── monitoring/              # 📊 Configuración de Prometheus y Grafana
+├── docker/                  # 🐳 Dockerfiles y scripts de entrada
 ├── plugins/                 # 🧩 Plugins del Dashboard
 ├── src/                     # 📦 Código fuente principal de la aplicación
 ├── templates/               # 📄 Templates HTML para el Dashboard
@@ -150,6 +154,8 @@ Para una comprensión más profunda de los componentes, consulte los siguientes 
 - **docs/API.md**: Documentación de los *endpoints* de la API RESTful.
 - **docs/PLUGINS.md**: Guía para el desarrollo de *plugins* para el Dashboard.
 - **docs/SDDCS_KAPREKAR_INTEGRATION.md**: Guía completa de integración del protocolo SDDCS-Kaprekar.
+- **docs/DEPLOYMENT_GUIDE.md**: Guía detallada de despliegue con Docker y CI/CD.
+- **docs/SDDCS_IMPACT_ANALYSIS.md**: Análisis detallado del impacto de la integración SDDCS.
 - **integrations/README.md**: Documentación de módulos de integración externos.
 
 ## 📞 Soporte y Contribución

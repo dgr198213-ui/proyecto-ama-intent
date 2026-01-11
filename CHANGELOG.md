@@ -54,6 +54,18 @@
 - Validación de integridad de datos en múltiples capas
 - Escaneo automático de vulnerabilidades con Trivy y Bandit
 
+### 📊 Monitoreo y Observabilidad
+
+- **Prometheus Exporter**: Nuevo módulo `src/metrics/prometheus_exporter.py` para exponer métricas del sistema y SDDCS.
+- **Grafana Dashboard**: Dashboard profesional preconfigurado para visualizar la salud del sistema y métricas de Kaprekar.
+- **Alerting**: Sistema de alertas configurado en Prometheus para detectar fallos de validación, latencia alta y caídas del sistema.
+
+### 💾 Backup y Recuperación
+
+- **Backup System**: Nuevo script `scripts/backup_script.py` con soporte para backups locales y en la nube (S3).
+- **Verificación de Integridad**: Los backups incluyen sumas de comprobación y validación de base de datos SQLite.
+- **Dockerized Backup**: Servicio de backup dedicado en Docker con programación vía cron.
+
 ---
 
 ## [2.0.0] - 2025-12
