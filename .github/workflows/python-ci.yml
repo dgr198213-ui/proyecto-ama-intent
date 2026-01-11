@@ -1,37 +1,42 @@
-name: Python CI
+# =============================================================================
+# .github/workflows/metrics-report.yml
+# Reporte de Métricas Semanal
+# =============================================================================
+name: Weekly Metrics Report
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  schedule:
+    - cron: '0 9 * * 1'  # Lunes a las 9 AM
+  workflow_dispatch:
 
 jobs:
-  build-and-run:
+  generate-report:
+    name: Generate Metrics Report
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      - name: Show Python version
-        run: python --version
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt
+          pip install matplotlib pandas tabulate psutil
 
-      - name: Compile (syntax check)
-        run: python -m compileall -q .
+      - name: Run SDDCS benchmarks
+        run: |
+          python benchmarks/sddcs_benchmark.py --iterations 10000
 
-      - name: Run main smoke test
-        run: python ama_main.py
-
-      - name: Run complete test suite
-        run: python ama_complete_test_suite.py
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: sddcs-benchmark-results
+          path: |
+            sddcs_benchmark_results.csv
+            sddcs_benchmark_comparison.png
