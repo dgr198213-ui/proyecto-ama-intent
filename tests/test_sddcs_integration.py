@@ -24,9 +24,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-sys.path.insert(0, "../integrations")
+sys.path.insert(0, "integrations")
 
-from sddcs_kaprekar import (
+from integrations.sddcs_kaprekar import (
     AgentStateSync,
     AMAIntentSDDCSBridge,
     SDDCSCacheValidator,
