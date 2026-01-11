@@ -2,9 +2,9 @@
 """
 Migración de BD para soporte SDDCS
 """
-import sqlite3
-import os
 import argparse
+import os
+import sqlite3
 
 # Configurar ruta de la base de datos
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "ama_dashboard.db")
