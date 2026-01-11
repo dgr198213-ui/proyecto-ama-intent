@@ -26,6 +26,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import requests
 from ama_intent import Intent, extract_intent, validate_intent_immutability
+
 # Importar módulos del cerebro
 from brain_complete import CompleteBrain, CompleteBrainConfig
 

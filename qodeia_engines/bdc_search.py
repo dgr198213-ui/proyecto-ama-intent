@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 from .base import BaseEngine
-from .utils import cosine_sim, idf, tfidf_vec
+from .utils import cosine_sim, idf, tfidf_vec, tokenize
 
 
 class BDCSearchEngine(BaseEngine):
@@ -33,8 +33,10 @@ class BDCSearchEngine(BaseEngine):
             new_docs = payload.get("docs", [])
             # Asegurar que cada doc tenga lo necesario
             for d in new_docs:
-                if "id" not in d: d["id"] = str(len(self.docs))
-                if "text" not in d: d["text"] = ""
+                if "id" not in d:
+                    d["id"] = str(len(self.docs))
+                if "text" not in d:
+                    d["text"] = ""
             self.docs.extend(new_docs)
             self._rebuild()
             # Compatibilidad con EngineResult: debe ser un dict

@@ -16,6 +16,7 @@ Cobertura:
 
 import json
 import pickle
+
 # Importar módulos SDDCS (asumiendo que están en integrations/)
 import sys
 import time
@@ -25,10 +26,16 @@ import pytest
 
 sys.path.insert(0, "../integrations")
 
-from sddcs_kaprekar import (AgentStateSync, AMAIntentSDDCSBridge,
-                            SDDCSCacheValidator, SDDCSJWTManager, SDDCSPlugin,
-                            SyntheticDataVerifier, derive_session_key,
-                            kaprekar_routine)
+from sddcs_kaprekar import (
+    AgentStateSync,
+    AMAIntentSDDCSBridge,
+    SDDCSCacheValidator,
+    SDDCSJWTManager,
+    SDDCSPlugin,
+    SyntheticDataVerifier,
+    derive_session_key,
+    kaprekar_routine,
+)
 
 # ============================================================================
 # FIXTURES

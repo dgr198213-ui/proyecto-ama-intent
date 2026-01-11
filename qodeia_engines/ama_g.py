@@ -49,7 +49,9 @@ class AMAGEngine(BaseEngine):
         # Compatibilidad con tests
         payload_out["risk_score"] = audit["risk_score"]
         payload_out["risk_level"] = audit["risk_level"]
-        payload_out["intent"] = "analítica" if audit["intent"] == "analyze" else audit["intent"]
+        payload_out["intent"] = (
+            "analítica" if audit["intent"] == "analyze" else audit["intent"]
+        )
         payload_out["intent_details"] = {"goal": audit["intent"]}
         return payload_out
 

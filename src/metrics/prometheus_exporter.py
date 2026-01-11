@@ -30,8 +30,15 @@ from typing import Callable
 
 import psutil
 from flask import Flask, Response
-from prometheus_client import (CONTENT_TYPE_LATEST, CollectorRegistry, Counter,
-                               Gauge, Histogram, Summary, generate_latest)
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+    Summary,
+    generate_latest,
+)
 from prometheus_client.multiprocess import MultiProcessCollector
 
 # ============================================================================

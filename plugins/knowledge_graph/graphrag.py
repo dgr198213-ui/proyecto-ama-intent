@@ -15,16 +15,14 @@ import networkx as nx
 
 # Importaciones locales
 try:
-    from .project_kg import (CodeEntity, NodeType, ProjectKnowledgeGraph,
-                             RelationType)
+    from .project_kg import CodeEntity, NodeType, ProjectKnowledgeGraph, RelationType
 except ImportError:
     # Para ejecución directa o tests
     import sys
     from pathlib import Path
 
     sys.path.append(str(Path(__file__).parent))
-    from project_kg import (CodeEntity, NodeType, ProjectKnowledgeGraph,
-                            RelationType)
+    from project_kg import CodeEntity, NodeType, ProjectKnowledgeGraph, RelationType
 
 
 class QueryType(Enum):

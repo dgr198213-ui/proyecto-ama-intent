@@ -25,7 +25,9 @@ class TestAMAIntentSystem(unittest.TestCase):
             "BDC-Search", {"op": "search", "query": "python", "k": 1}
         )
         # El motor devuelve una lista de resultados en EngineResult.data
-        self.assertTrue(len(results) >= 0) # El motor está funcionando si no lanza error
+        self.assertTrue(
+            len(results) >= 0
+        )  # El motor está funcionando si no lanza error
 
     def test_03_dmd(self):
         alts = [

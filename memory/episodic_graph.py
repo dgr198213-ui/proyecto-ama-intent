@@ -19,8 +19,7 @@ from tkinter import messagebox, scrolledtext, ttk
 from typing import Dict, Optional
 
 # Importar módulos del cerebro
-from ollama_brain_interface import (CompleteBrainConfig, GovernedLocalLLM,
-                                    LLMConfig)
+from ollama_brain_interface import CompleteBrainConfig, GovernedLocalLLM, LLMConfig
 
 
 class BrainGUI:

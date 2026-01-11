@@ -22,8 +22,7 @@ from typing import Optional
 # Añadir path del proyecto
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from ollama_brain_interface import (CompleteBrainConfig, GovernedLocalLLM,
-                                    LLMConfig)
+from ollama_brain_interface import CompleteBrainConfig, GovernedLocalLLM, LLMConfig
 
 
 class InteractiveCLI:

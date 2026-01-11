@@ -3,8 +3,14 @@ Optimizers Module - AMA-Intent
 Optimizadores avanzados para entrenamiento estable
 """
 
-from .muonclip import (AttentionMonitor, MuonClipConfig, MuonClipOptimizer,
-                       MuonMomentum, QKClipper, TrainingStats)
+from .muonclip import (
+    AttentionMonitor,
+    MuonClipConfig,
+    MuonClipOptimizer,
+    MuonMomentum,
+    QKClipper,
+    TrainingStats,
+)
 
 __all__ = [
     "MuonClipOptimizer",

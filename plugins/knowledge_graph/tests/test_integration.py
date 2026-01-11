@@ -5,8 +5,10 @@ from pathlib import Path
 # Añadir el directorio raíz al path para poder importar los módulos
 sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 
-from plugins.knowledge_graph.orchestrator import (KGBuildConfig,
-                                                  KnowledgeGraphOrchestrator)
+from plugins.knowledge_graph.orchestrator import (
+    KGBuildConfig,
+    KnowledgeGraphOrchestrator,
+)
 
 
 async def main():
