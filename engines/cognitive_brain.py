@@ -1,7 +1,9 @@
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.utils import tokenize
+
 
 class CognitiveBrain:
     def __init__(self):
@@ -20,7 +22,7 @@ class CognitiveBrain:
         # Lógica de decisión basada en tokens y contexto
         intent = payload.get("intent", "conversacional")
         confidence = 0.5
-        
+
         # Mapeo de RequestType a acciones
         if intent in ["informacional", "técnica"]:
             action = "search"
@@ -33,21 +35,21 @@ class CognitiveBrain:
             confidence = 0.75
         else:
             action = "general"
-        
+
         return action, confidence
 
     def run(self, payload):
         text = payload.get("text", "")
         tokens = tokenize(text)
-        
+
         action, confidence = self._decide(tokens, payload)
-        
+
         result = {
             "action": action,
             "confidence": confidence,
-            "tokens_count": len(tokens)
+            "tokens_count": len(tokens),
         }
-        
+
         self._push_wm({"input": text, "output": result})
-        
+
         return result

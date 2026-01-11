@@ -12,75 +12,46 @@ Autor: AMA-Intent Team
 Fecha: 2025
 """
 
-from training.optimizers import (
-    MuonClipOptimizer,
-    MuonClipConfig,
-    AttentionMonitor,
-    QKClipper,
-    TrainingStats
-)
-
-from agents.long_horizon import (
-    LongHorizonAgent,
-    ActionType,
-    StepStatus,
-    Action,
-    Observation,
-    GoalState,
-    AgentState,
-    ContextManager,
-    GoalDriftDetector
-)
-
-from ama_data.synthesis import (
-    AgenticDataSynthesizer,
-    BugInjector,
-    CodeVerifier,
-    BugType,
-    BugPattern,
-    CodeTrajectory
-)
-
-from llm.connector import (
-    ContextCache,
-    MultiHeadLatentAttention,
-    CachedContext,
-    LLMHubWithCaching
-)
-
+from agents.long_horizon import (Action, ActionType, AgentState,
+                                 ContextManager, GoalDriftDetector, GoalState,
+                                 LongHorizonAgent, Observation, StepStatus)
+from ama_data.synthesis import (AgenticDataSynthesizer, BugInjector,
+                                BugPattern, BugType, CodeTrajectory,
+                                CodeVerifier)
+from llm.connector import (CachedContext, ContextCache, LLMHubWithCaching,
+                           MultiHeadLatentAttention)
+from training.optimizers import (AttentionMonitor, MuonClipConfig,
+                                 MuonClipOptimizer, QKClipper, TrainingStats)
 
 __all__ = [
     # Optimizers
-    'MuonClipOptimizer',
-    'MuonClipConfig',
-    'AttentionMonitor',
-    'QKClipper',
-    'TrainingStats',
-    
+    "MuonClipOptimizer",
+    "MuonClipConfig",
+    "AttentionMonitor",
+    "QKClipper",
+    "TrainingStats",
     # Long Horizon Agent
-    'LongHorizonAgent',
-    'ActionType',
-    'StepStatus',
-    'Action',
-    'Observation',
-    'GoalState',
-    'AgentState',
-    'ContextManager',
-    'GoalDriftDetector',
-    
+    "LongHorizonAgent",
+    "ActionType",
+    "StepStatus",
+    "Action",
+    "Observation",
+    "GoalState",
+    "AgentState",
+    "ContextManager",
+    "GoalDriftDetector",
     # Data Synthesis
-    'AgenticDataSynthesizer',
-    'BugInjector',
-    'CodeVerifier',
-    'BugType',
-    'BugPattern',
-    'CodeTrajectory',
-    
+    "AgenticDataSynthesizer",
+    "BugInjector",
+    "CodeVerifier",
+    "BugType",
+    "BugPattern",
+    "CodeTrajectory",
     # LLM Caching
-    'ContextCache',
-    'MultiHeadLatentAttention',
-    'CachedContext',
-    'LLMHubWithCaching'
+    "ContextCache",
+    "MultiHeadLatentAttention",
+    "CachedContext",
+    "LLMHubWithCaching",
 ]
 
 
@@ -96,7 +67,7 @@ def get_components():
         "long_horizon_agent": "Agente capaz de ejecutar tareas de 200-300 pasos",
         "agentic_synthesizer": "Generador de trayectorias sintéticas con RLVR",
         "context_caching": "Sistema de cacheo de contexto para reducir costos 90%",
-        "mla_attention": "Multi-Head Latent Attention para contextos largos (256K tokens)"
+        "mla_attention": "Multi-Head Latent Attention para contextos largos (256K tokens)",
     }
 
 

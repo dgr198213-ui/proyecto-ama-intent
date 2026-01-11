@@ -18,19 +18,19 @@ Versión: 2.0.0
 Fecha: 2026-01-04
 """
 
-import os
-import sys
 import json
-import subprocess
+import os
 import shutil
-from pathlib import Path
-from typing import Dict, Any, List, Optional
+import subprocess
+import sys
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 class AMAMasterInstaller:
     """Instalador maestro para AMA-Intent v2.0"""
-    
+
     def __init__(self, install_path: str = "."):
         self.base = Path(install_path).absolute()
         self.log: List[str] = []
@@ -40,15 +40,15 @@ class AMAMasterInstaller:
             "files_created": 0,
             "dirs_created": 0,
             "tests_passed": 0,
-            "tests_failed": 0
+            "tests_failed": 0,
         }
-        
+
     def log_msg(self, msg: str, level: str = "INFO"):
         """Registra mensaje con timestamp"""
         ts = datetime.now().strftime("%H:%M:%S")
         entry = f"[{ts}] [{level}] {msg}"
         self.log.append(entry)
-        
+
         if level == "ERROR":
             self.errors.append(msg)
             print(f"❌ {msg}")
@@ -57,20 +57,23 @@ class AMAMasterInstaller:
             print(f"⚠️  {msg}")
         else:
             print(f"✓ {msg}")
-    
+
     def check_requirements(self) -> bool:
         """Verifica requisitos del sistema"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("VERIFICACIÓN DE REQUISITOS")
-        print("="*70 + "\n")
-        
+        print("=" * 70 + "\n")
+
         # Python version
         py_version = sys.version_info
         if py_version.major < 3 or (py_version.major == 3 and py_version.minor < 7):
-            self.log_msg(f"Python 3.7+ requerido (actual: {py_version.major}.{py_version.minor})", "ERROR")
+            self.log_msg(
+                f"Python 3.7+ requerido (actual: {py_version.major}.{py_version.minor})",
+                "ERROR",
+            )
             return False
         self.log_msg(f"Python {py_version.major}.{py_version.minor}.{py_version.micro}")
-        
+
         # Permisos de escritura
         try:
             test_file = self.base / ".write_test"
@@ -80,7 +83,7 @@ class AMAMasterInstaller:
         except Exception as e:
             self.log_msg(f"Sin permisos de escritura: {e}", "ERROR")
             return False
-        
+
         # Espacio en disco (mínimo 100MB)
         try:
             stat = shutil.disk_usage(self.base)
@@ -91,15 +94,15 @@ class AMAMasterInstaller:
                 self.log_msg(f"Espacio disponible: {free_mb:.1f}MB")
         except Exception:
             self.log_msg("No se pudo verificar espacio en disco", "WARNING")
-        
+
         return True
-    
+
     def create_base_structure(self):
         """Crea estructura base del proyecto"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("CREANDO ESTRUCTURA BASE")
-        print("="*70 + "\n")
-        
+        print("=" * 70 + "\n")
+
         dirs = [
             "src",
             "src/FASE1",
@@ -110,24 +113,24 @@ class AMAMasterInstaller:
             "tests",
             "data",
             "exports",
-            "logs"
+            "logs",
         ]
-        
+
         for d in dirs:
             path = self.base / d
             path.mkdir(parents=True, exist_ok=True)
             self.stats["dirs_created"] += 1
             self.log_msg(f"Directorio: {d}")
-    
+
     def install_qodeia_core(self):
         """Instala núcleo Qodeia"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("INSTALANDO QODEIA ENGINES")
-        print("="*70 + "\n")
-        
+        print("=" * 70 + "\n")
+
         # Verificar si qodeia_ama_integrator.py existe
         integrator = self.base / "qodeia_ama_integrator.py"
-        
+
         if integrator.exists():
             self.log_msg("Ejecutando qodeia_ama_integrator.py...")
             try:
@@ -135,16 +138,16 @@ class AMAMasterInstaller:
                     [sys.executable, str(integrator), "--base", str(self.base)],
                     capture_output=True,
                     text=True,
-                    timeout=60
+                    timeout=60,
                 )
-                
+
                 if result.returncode == 0:
                     self.log_msg("Qodeia engines instalado correctamente")
                     return True
                 else:
                     self.log_msg(f"Error en integrador: {result.stderr}", "ERROR")
                     return False
-                    
+
             except subprocess.TimeoutExpired:
                 self.log_msg("Timeout en integrador Qodeia", "ERROR")
                 return False
@@ -156,34 +159,37 @@ class AMAMasterInstaller:
             self.log_msg("Creando estructura mínima de Qodeia...")
             self._create_minimal_qodeia()
             return True
-    
+
     def _create_minimal_qodeia(self):
         """Crea estructura mínima de Qodeia si integrador no existe"""
         qodeia_path = self.base / "qodeia_engines"
-        
+
         # __init__.py
         init_content = '''"""Qodeia Engines - Minimal Setup"""
 __version__ = "2.0.0"
 '''
-        (qodeia_path / "__init__.py").write_text(init_content, encoding='utf-8')
+        (qodeia_path / "__init__.py").write_text(init_content, encoding="utf-8")
         self.stats["files_created"] += 1
-        
+
         self.log_msg("Estructura mínima Qodeia creada")
-    
+
     def install_fase_integration(self):
         """Instala integración FASE"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("INSTALANDO FASE INTEGRATION")
-        print("="*70 + "\n")
-        
+        print("=" * 70 + "\n")
+
         fase_integrator = self.base / "ama_phase_integrator.py"
-        
+
         if fase_integrator.exists():
             self.log_msg("ama_phase_integrator.py encontrado")
             # Verificar que importa correctamente
             try:
                 import importlib.util
-                spec = importlib.util.spec_from_file_location("ama_phase_integrator", fase_integrator)
+
+                spec = importlib.util.spec_from_file_location(
+                    "ama_phase_integrator", fase_integrator
+                )
                 if spec:
                     self.log_msg("FASE integration disponible")
                     return True
@@ -191,15 +197,15 @@ __version__ = "2.0.0"
                 self.log_msg(f"Error verificando FASE integration: {e}", "WARNING")
         else:
             self.log_msg("ama_phase_integrator.py no encontrado", "WARNING")
-        
+
         return True
-    
+
     def create_main_app(self):
         """Crea aplicación principal"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("CREANDO APLICACIÓN PRINCIPAL")
-        print("="*70 + "\n")
-        
+        print("=" * 70 + "\n")
+
         main_content = '''#!/usr/bin/env python3
 """
 AMA-Intent v2.0 - Aplicación Principal
@@ -265,19 +271,19 @@ def main():
 if __name__ == "__main__":
     main()
 '''
-        
+
         main_file = self.base / "ama_main.py"
-        main_file.write_text(main_content, encoding='utf-8')
+        main_file.write_text(main_content, encoding="utf-8")
         self.stats["files_created"] += 1
         self.log_msg("Aplicación principal creada: ama_main.py")
-    
+
     def create_master_readme(self):
         """Crea README maestro"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("GENERANDO DOCUMENTACIÓN MAESTRA")
-        print("="*70 + "\n")
-        
-        readme_content = f'''# AMA-Intent v2.0
+        print("=" * 70 + "\n")
+
+        readme_content = f"""# AMA-Intent v2.0
 ## Sistema de Cerebro Artificial Biomimético con Qodeia Engines
 
 **Versión**: 2.0.0  
@@ -503,42 +509,42 @@ ama = AMAPhaseIntegrator(config=config)
 - ⚡ ~50ms por pipeline completo
 - ⚡ ~100 queries/s en búsqueda
 - ⚡ ~50 docs/s en ingest
-'''
-        
+"""
+
         readme_file = self.base / "README.md"
-        readme_file.write_text(readme_content, encoding='utf-8')
+        readme_file.write_text(readme_content, encoding="utf-8")
         self.stats["files_created"] += 1
         self.log_msg("README maestro generado")
-    
+
     def run_validation_tests(self) -> bool:
         """Ejecuta tests de validación"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("EJECUTANDO TESTS DE VALIDACIÓN")
-        print("="*70 + "\n")
-        
+        print("=" * 70 + "\n")
+
         tests_passed = 0
         tests_total = 5
-        
+
         # Test 1: Estructura de directorios
         required_dirs = ["qodeia_engines", "src", "docs"]
         all_exist = all((self.base / d).exists() for d in required_dirs)
-        
+
         if all_exist:
             self.log_msg("Test 1/5: Estructura de directorios ✓")
             tests_passed += 1
         else:
             self.log_msg("Test 1/5: Estructura de directorios ✗", "ERROR")
-        
+
         # Test 2: Archivos principales
         required_files = ["ama_main.py", "README.md"]
         all_exist = all((self.base / f).exists() for f in required_files)
-        
+
         if all_exist:
             self.log_msg("Test 2/5: Archivos principales ✓")
             tests_passed += 1
         else:
             self.log_msg("Test 2/5: Archivos principales ✗", "ERROR")
-        
+
         # Test 3: Qodeia engines
         qodeia_init = self.base / "qodeia_engines" / "__init__.py"
         if qodeia_init.exists():
@@ -546,41 +552,42 @@ ama = AMAPhaseIntegrator(config=config)
             tests_passed += 1
         else:
             self.log_msg("Test 3/5: Qodeia engines ✗", "ERROR")
-        
+
         # Test 4: Importaciones
         try:
             sys.path.insert(0, str(self.base))
             from qodeia_engines import EngineBus
+
             self.log_msg("Test 4/5: Importaciones ✓")
             tests_passed += 1
         except ImportError as e:
             self.log_msg(f"Test 4/5: Importaciones ✗ ({e})", "ERROR")
-        
+
         # Test 5: Permisos
         try:
             test_log = self.base / "logs" / "test.log"
             test_log.parent.mkdir(exist_ok=True)
-            test_log.write_text("test", encoding='utf-8')
+            test_log.write_text("test", encoding="utf-8")
             test_log.unlink()
             self.log_msg("Test 5/5: Permisos de escritura ✓")
             tests_passed += 1
         except Exception as e:
             self.log_msg(f"Test 5/5: Permisos de escritura ✗ ({e})", "ERROR")
-        
+
         self.stats["tests_passed"] = tests_passed
         self.stats["tests_failed"] = tests_total - tests_passed
-        
+
         print(f"\n{'='*70}")
         print(f"TESTS: {tests_passed}/{tests_total} pasados")
         print(f"{'='*70}\n")
-        
+
         return tests_passed == tests_total
-    
+
     def generate_final_report(self) -> str:
         """Genera reporte final de instalación"""
         status = "EXITOSA" if not self.errors else "CON ERRORES"
-        
-        report = f'''
+
+        report = f"""
 {'='*70}
 AMA-INTENT v2.0 - REPORTE DE INSTALACIÓN
 {'='*70}
@@ -625,66 +632,66 @@ PRÓXIMOS PASOS
 3. FASE: python ama_phase_integrator.py --demo
 4. Leer: README.md y docs/QODEIA_INTEGRATION_MANUAL.md
 
-'''
-        
+"""
+
         if self.errors:
-            report += "\nERRORES ENCONTRADOS\n" + "-"*70 + "\n"
+            report += "\nERRORES ENCONTRADOS\n" + "-" * 70 + "\n"
             for i, err in enumerate(self.errors, 1):
                 report += f"{i}. {err}\n"
-        
+
         if self.warnings:
-            report += "\nADVERTENCIAS\n" + "-"*70 + "\n"
+            report += "\nADVERTENCIAS\n" + "-" * 70 + "\n"
             for i, warn in enumerate(self.warnings, 1):
                 report += f"{i}. {warn}\n"
-        
-        report += "\nLOG DETALLADO\n" + "="*70 + "\n"
+
+        report += "\nLOG DETALLADO\n" + "=" * 70 + "\n"
         for entry in self.log:
             report += entry + "\n"
-        
-        report += "\n" + "="*70 + "\n"
-        
+
+        report += "\n" + "=" * 70 + "\n"
+
         return report
-    
+
     def install(self) -> bool:
         """Ejecuta instalación completa"""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print(" AMA-INTENT v2.0 - MASTER INSTALLER")
-        print("="*70)
+        print("=" * 70)
         print(f"\nInstalando en: {self.base}\n")
-        
+
         try:
             # 1. Requisitos
             if not self.check_requirements():
                 return False
-            
+
             # 2. Estructura base
             self.create_base_structure()
-            
+
             # 3. Qodeia core
             self.install_qodeia_core()
-            
+
             # 4. FASE integration
             self.install_fase_integration()
-            
+
             # 5. App principal
             self.create_main_app()
-            
+
             # 6. Documentación
             self.create_master_readme()
-            
+
             # 7. Validación
             validation_ok = self.run_validation_tests()
-            
+
             # 8. Reporte
             report = self.generate_final_report()
-            
+
             # Guardar reporte
             report_file = self.base / "INSTALLATION_REPORT.txt"
-            report_file.write_text(report, encoding='utf-8')
-            
+            report_file.write_text(report, encoding="utf-8")
+
             print(report)
             print(f"\nReporte guardado en: {report_file}\n")
-            
+
             if validation_ok and self.stats["tests_failed"] == 0:
                 print("✅ INSTALACIÓN COMPLETADA CON ÉXITO")
             else:
@@ -705,6 +712,7 @@ PRÓXIMOS PASOS
         self.create_master_readme()
         self.generate_final_report()
         return True
+
 
 if __name__ == "__main__":
     installer = AMAMasterInstaller()

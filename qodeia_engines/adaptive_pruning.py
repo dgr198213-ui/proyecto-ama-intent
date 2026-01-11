@@ -1,7 +1,10 @@
 from __future__ import annotations
-from typing import Dict, Any, List
+
+from typing import Any, Dict, List
+
 from .base import BaseEngine
 from .utils import clamp, mean
+
 
 class AdaptivePruningEngine(BaseEngine):
     """
@@ -12,6 +15,7 @@ class AdaptivePruningEngine(BaseEngine):
     - Usa alpha/beta/threshold
     - Devuelve kept/removed + métricas (efficiency, mean_score)
     """
+
     name = "Adaptive-Pruning"
     version = "1.1.0"
 

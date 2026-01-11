@@ -1,14 +1,11 @@
-import time
 import json
+import time
+
 
 class EngineBus:
     def __init__(self):
         self.engines = {}
-        self.metrics = {
-            "calls": 0,
-            "errors": 0,
-            "total_time": 0.0
-        }
+        self.metrics = {"calls": 0, "errors": 0, "total_time": 0.0}
         self.logs = []
 
     def register(self, name, engine_instance):
@@ -23,22 +20,22 @@ class EngineBus:
     def call(self, name, payload):
         if name not in self.engines:
             raise ValueError(f"Engine '{name}' not registered.")
-        
+
         start_time = time.time()
         self.metrics["calls"] += 1
-        
+
         try:
             result = self.engines[name].run(payload)
             duration = time.time() - start_time
             self.metrics["total_time"] += duration
-            
+
             log_entry = {
                 "timestamp": time.time(),
                 "engine": name,
                 "payload": payload,
                 "result": result,
                 "duration": duration,
-                "status": "success"
+                "status": "success",
             }
             self.logs.append(log_entry)
             return result
@@ -51,7 +48,7 @@ class EngineBus:
                 "payload": payload,
                 "error": str(e),
                 "duration": duration,
-                "status": "error"
+                "status": "error",
             }
             self.logs.append(log_entry)
             raise e
@@ -63,13 +60,17 @@ class EngineBus:
         return current_payload
 
     def get_metrics(self):
-        avg_time = self.metrics["total_time"] / self.metrics["calls"] if self.metrics["calls"] > 0 else 0
+        avg_time = (
+            self.metrics["total_time"] / self.metrics["calls"]
+            if self.metrics["calls"] > 0
+            else 0
+        )
         return {
             "calls": self.metrics["calls"],
             "errors": self.metrics["errors"],
-            "avg_time": avg_time
+            "avg_time": avg_time,
         }
 
     def export_log(self, path):
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(self.logs, f, indent=2)

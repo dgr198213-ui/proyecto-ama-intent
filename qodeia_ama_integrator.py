@@ -16,68 +16,66 @@ Funcionalidades:
 - Validación de integridad post-integración
 """
 
-import os
-import sys
 import hashlib
 import json
+import os
+import sys
 from datetime import datetime
-from typing import Dict, List, Any, Optional
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 
 class QodeiaAMAIntegrator:
     """Integrador principal de motores Qodeia en AMA-Intent"""
-    
+
     def __init__(self, base_path: str = "."):
         self.base = Path(base_path)
         self.src = self.base / "src"
         self.qodeia = self.base / "qodeia_engines"
         self.docs = self.base / "docs"
         self.log: List[str] = []
-        self.stats = {
-            "analyzed": 0,
-            "created": 0,
-            "modified": 0,
-            "errors": 0
-        }
-    
+        self.stats = {"analyzed": 0, "created": 0, "modified": 0, "errors": 0}
+
     def log_action(self, msg: str, level: str = "INFO"):
         """Registra acción con timestamp"""
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         entry = f"[{ts}] [{level}] {msg}"
         self.log.append(entry)
         print(entry)
-    
+
     def sha256(self, text: str) -> str:
         """Hash SHA-256 para integridad"""
-        return hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
-    
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
     def analyze_structure(self) -> Dict[str, Any]:
         """Analiza estructura existente de AMA-Intent"""
         self.log_action("Iniciando análisis de estructura...")
-        
+
         structure = {
             "src_exists": self.src.exists(),
             "modules": [],
             "total_files": 0,
-            "python_files": 0
+            "python_files": 0,
         }
-        
+
         if self.src.exists():
             for item in self.src.rglob("*.py"):
                 structure["modules"].append(str(item.relative_to(self.base)))
                 structure["python_files"] += 1
                 structure["total_files"] += 1
                 self.stats["analyzed"] += 1
-        
-        self.log_action(f"Estructura analizada: {structure['python_files']} módulos Python")
+
+        self.log_action(
+            f"Estructura analizada: {structure['python_files']} módulos Python"
+        )
         return structure
-    
+
     def create_qodeia_core(self):
         """Crea núcleo común Qodeia (base, bus, utils)"""
         self.log_action("Creando núcleo Qodeia...")
-        
+
         self.qodeia.mkdir(parents=True, exist_ok=True)
-        
+
         # __init__.py
         init_content = '''"""
 Qodeia Engines - Núcleo de Motores Integrados
@@ -92,7 +90,7 @@ __version__ = "2.0.0"
 __author__ = "AMA-Intent Team"
 '''
         self._write_file(self.qodeia / "__init__.py", init_content)
-        
+
         # base.py (con mejoras)
         base_content = '''from __future__ import annotations
 from dataclasses import dataclass, field
@@ -109,7 +107,21 @@ class EngineResult:
     data: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
     trace: Optional[str] = None
-    
+
+    def __getitem__(self, key):
+        """Permite acceso tipo diccionario para compatibilidad"""
+        if key in self.data:
+            return self.data[key]
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(key)
+
+    def __contains__(self, key):
+        return key in self.data or hasattr(self, key)
+
+    def __len__(self):
+        return len(self.data)
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "ok": self.ok,
@@ -160,7 +172,7 @@ class BaseEngine:
         }
 '''
         self._write_file(self.qodeia / "base.py", base_content)
-        
+
         # bus.py (orquestador)
         bus_content = '''from __future__ import annotations
 from typing import Dict, Any, List, Optional
@@ -261,7 +273,7 @@ class EngineBus:
             json.dump([r.to_dict() for r in self._log], f, indent=2)
 '''
         self._write_file(self.qodeia / "bus.py", bus_content)
-        
+
         # utils.py (utilidades comunes)
         utils_content = '''from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Tuple
@@ -337,13 +349,13 @@ def tfidf_vec(text: str, idf_map: Dict[str, float]) -> Dict[str, float]:
     return {w: t[w] * idf_map.get(w, 0.0) for w in t}
 '''
         self._write_file(self.qodeia / "utils.py", utils_content)
-        
+
         self.log_action("Núcleo Qodeia creado correctamente")
-    
+
     def create_tier1_engines(self):
         """Crea motores Tier 1 (máximo impacto)"""
         self.log_action("Creando motores Tier 1...")
-        
+
         # AMA-G mejorado
         ama_g_content = '''from __future__ import annotations
 from typing import Dict, Any
@@ -427,7 +439,7 @@ class AMAGEngine(BaseEngine):
         return clamp(flags / 8.0, 0.0, 1.0)
 '''
         self._write_file(self.qodeia / "ama_g.py", ama_g_content)
-        
+
         # Cognitive Brain
         cognitive_content = '''from __future__ import annotations
 from typing import Dict, Any, List
@@ -505,7 +517,7 @@ class CognitiveBrainEngine(BaseEngine):
         return [item["text"] for item in self.working_memory[-n:]]
 '''
         self._write_file(self.qodeia / "cognitive_brain.py", cognitive_content)
-        
+
         # Associative Memory
         assoc_content = '''from __future__ import annotations
 from typing import Dict, Any, List, Tuple
@@ -603,7 +615,7 @@ class AssociativeMemoryEngine(BaseEngine):
         }
 '''
         self._write_file(self.qodeia / "associative_memory.py", assoc_content)
-        
+
         # BDC Search
         bdc_content = '''from __future__ import annotations
 from typing import Dict, Any, List, Tuple
@@ -651,7 +663,7 @@ class BDCSearchEngine(BaseEngine):
         return {"bdc": {"results": results[:k]}}
 '''
         self._write_file(self.qodeia / "bdc_search.py", bdc_content)
-        
+
         # DMD Engine
         dmd_content = '''from __future__ import annotations
 from typing import Dict, Any, List
@@ -689,7 +701,7 @@ class DMDEngine(BaseEngine):
         return {"dmd": {"best": scored[0], "scores": scored}}
 '''
         self._write_file(self.qodeia / "dmd.py", dmd_content)
-        
+
         # Adaptive Pruning Engine
         pruning_content = '''from __future__ import annotations
 from typing import Dict, Any, List
@@ -719,7 +731,7 @@ class AdaptivePruningEngine(BaseEngine):
         }
 '''
         self._write_file(self.qodeia / "adaptive_pruning.py", pruning_content)
-        
+
         # LFPI Engine
         lfpi_content = '''from __future__ import annotations
 from typing import Dict, Any
@@ -762,7 +774,7 @@ class LFPIEngine(BaseEngine):
 
     def _write_file(self, path: Path, content: str):
         """Escribe contenido en archivo y registra estadísticas"""
-        path.write_text(content, encoding='utf-8')
+        path.write_text(content, encoding="utf-8")
         self.stats["created"] += 1
         self.log_action(f"Archivo creado: {path.name}")
 
@@ -773,6 +785,7 @@ class LFPIEngine(BaseEngine):
         self.create_tier1_engines()
         self.log_action("Integración completada con éxito")
         print(f"\nEstadísticas: {self.stats}")
+
 
 if __name__ == "__main__":
     integrator = QodeiaAMAIntegrator()

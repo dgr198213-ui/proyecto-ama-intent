@@ -3,19 +3,20 @@ Blog Writer Module
 Generates blog post drafts
 """
 
-from typing import Dict, List, Any
 from datetime import datetime
+from typing import Any, Dict, List
+
 
 class BlogWriter:
     def __init__(self):
         self.templates = {
-            'tutorial': 'Step-by-step guide template',
-            'opinion': 'Opinion piece template',
-            'listicle': 'List-based article template',
-            'howto': 'How-to guide template'
+            "tutorial": "Step-by-step guide template",
+            "opinion": "Opinion piece template",
+            "listicle": "List-based article template",
+            "howto": "How-to guide template",
         }
-    
-    def generate_draft(self, topic: str, style: str = 'tutorial') -> Dict[str, Any]:
+
+    def generate_draft(self, topic: str, style: str = "tutorial") -> Dict[str, Any]:
         """Generate blog post draft"""
         return {
             "title": f"Guide to {topic}",
@@ -23,10 +24,10 @@ class BlogWriter:
             "metadata": {
                 "created": datetime.now().isoformat(),
                 "style": style,
-                "word_count": 0
-            }
+                "word_count": 0,
+            },
         }
-    
+
     def _generate_content(self, topic: str, style: str) -> str:
         """Generate content based on style"""
         return f"""# {topic}
