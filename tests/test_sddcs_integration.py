@@ -551,4 +551,5 @@ class TestPerformance:
             kaprekar_routine(3524 + i)
         
         elapsed = time.perf_counter() - start
-        avg_time = 
+        avg_time = elapsed / iterations
+        print(f"Average Kaprekar time: {avg_time:.6f}s")

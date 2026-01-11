@@ -579,4 +579,4 @@ def demo_integration():
     print(f"Sesión 1:")
     print(f"  User ID: {payload_1['user_id']}")
     print(f"  Seed: {payload_1['seed']}")
-    print(f"  Steps: {paylo
+    print(f"  Steps: {payload_1['steps']}")

@@ -6,6 +6,7 @@ Inspirado en Kimi K2
 """
 
 import hashlib
+import asyncio
 import torch
 import torch.nn as nn
 import numpy as np

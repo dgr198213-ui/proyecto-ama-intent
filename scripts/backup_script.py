@@ -562,4 +562,4 @@ class BackupManager:
             if temp_dir.exists():
                 shutil.rmtree(temp_dir)
             
-            ret
+            return False

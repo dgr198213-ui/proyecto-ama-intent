@@ -500,7 +500,7 @@ class BrainGUI:
             self.root.after(0, lambda: self.handle_response(result))
             
         except Exception as e:
-            self.root.after(0, lambda: self.add_chat_message("error", f"Error: {str(e)}"))
+            self.root.after(0, lambda e_val=e: self.add_chat_message("error", f"Error: {str(e_val)}"))
             self.log_event(f"❌ Error en procesamiento: {str(e)}")
         
         finally:
