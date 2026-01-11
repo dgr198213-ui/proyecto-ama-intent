@@ -44,6 +44,20 @@ Inspirado en las innovaciones de Kimi K2, AMA-Intent ahora incorpora un conjunto
 
 Estos componentes trabajan en sinergia para llevar las capacidades de AMA-Intent a un nuevo nivel de eficiencia y autonomía.
 
+## 🔐 Integración SDDCS-Kaprekar: Seguridad y Sincronización Avanzada
+
+AMA-Intent v2.0 ahora incorpora el **protocolo SDDCS-Kaprekar**, un sistema de sincronización y validación basado en el algoritmo de Kaprekar que proporciona:
+
+| Componente | Descripción | Beneficio Principal |
+| :--- | :--- | :--- |
+| **Agent State Synchronization** | Sincronización de estado del Long Horizon Agent con checkpoints de 4 bytes. | Validación ligera y eficiente del estado del agente en cada paso de ejecución. |
+| **Context Cache Validation** | Validación de integridad de contextos cacheados mediante fingerprints SDDCS. | Detección inmediata de corrupción o alteración de contextos almacenados. |
+| **Synthetic Data Verification** | Firma y verificación de datos sintéticos generados por el Agentic Data Synthesizer. | Garantía de integridad de datos de entrenamiento sintéticos. |
+| **Plugin State Persistence** | Persistencia ligera de estado de plugins con fingerprints de 4 bytes. | Reducción de overhead de almacenamiento manteniendo integridad total. |
+| **JWT with Rolling Seeds** | Autenticación JWT con semillas rotativas basadas en Kaprekar. | Tokens de sesión más seguros con rotación automática de claves. |
+
+La integración SDDCS-Kaprekar proporciona una capa adicional de seguridad y confiabilidad al sistema, especialmente crítica para operaciones de larga duración del Long Horizon Agent.
+
 ---
 
 ## 🛠️ Instalación y Uso
@@ -110,6 +124,7 @@ proyecto-ama-intent/
 │   └── connector/
 ├── training/                # 🏋️ Módulos de entrenamiento (Nuevo: MuonClip Optimizer)
 │   └── optimizers/
+├── integrations/            # 🔐 Integraciones externas (Nuevo: SDDCS-Kaprekar)
 ├── plugins/                 # 🧩 Plugins del Dashboard
 ├── src/                     # 📦 Código fuente principal de la aplicación
 ├── templates/               # 📄 Templates HTML para el Dashboard
@@ -134,6 +149,8 @@ Para una comprensión más profunda de los componentes, consulte los siguientes 
 - **DASHBOARD_README.md**: Guía completa de la arquitectura, módulos y uso del Personal Dashboard v2.0.
 - **docs/API.md**: Documentación de los *endpoints* de la API RESTful.
 - **docs/PLUGINS.md**: Guía para el desarrollo de *plugins* para el Dashboard.
+- **docs/SDDCS_KAPREKAR_INTEGRATION.md**: Guía completa de integración del protocolo SDDCS-Kaprekar.
+- **integrations/README.md**: Documentación de módulos de integración externos.
 
 ## 📞 Soporte y Contribución
 
