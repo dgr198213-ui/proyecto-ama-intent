@@ -15,6 +15,7 @@ Cobertura:
 """
 
 import json
+import os
 import pickle
 
 # Importar módulos SDDCS (asumiendo que están en integrations/)
@@ -24,7 +25,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-sys.path.insert(0, "integrations")
+# Agregar el directorio raíz al path para importaciones
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from integrations.sddcs_kaprekar import (
     AgentStateSync,
