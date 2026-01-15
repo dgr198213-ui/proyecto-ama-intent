@@ -23,6 +23,7 @@ El Dashboard v2.0 representa una actualización fundamental, enfocada en la pers
 | **Code Companion** | Módulos de asistencia de código para *debugging*, análisis de calidad y generación de tests unitarios. | Aumento de la productividad y reducción del tiempo de *debugging*. |
 | **Content Creator** | Herramientas para la generación de borradores de blog, optimización SEO y adaptación a redes sociales. | Automatización del flujo de trabajo de creación de contenido. |
 | **Knowledge Graph & GraphRAG** | Construcción de grafos de conocimiento del código y sistema de consultas inteligentes. | Análisis profundo de arquitectura y dependencias mediante lenguaje natural. |
+| **Credential Manager** | Panel de gestión segura de claves API para servicios externos (OpenAI, Anthropic, Google, etc.). | Almacenamiento cifrado y centralizado de credenciales de IA. |
 
 ### 🔌 Plugins Incluidos (v2.0)
 
@@ -84,15 +85,20 @@ pip install -r requirements_dashboard.txt
 
 ### 3. Configuración Inicial
 
-Crea el archivo de configuración de entorno y ejecuta el script de migración.
+Crea el archivo de configuración de entorno y ejecuta los scripts de migración.
 
 ```bash
 # Copiar el archivo de ejemplo
 cp .env.example .env
 
-# Ejecutar la migración para crear la base de datos y el usuario admin
+# Ejecutar la migración principal
 python3 scripts/migrate_and_upgrade.py
+
+# Ejecutar la migración para el sistema de credenciales
+python3 scripts/migrate_credentials.py
 ```
+
+> **Nota de Seguridad**: Se recomienda configurar la variable de entorno `CREDENTIALS_SECRET_KEY` en su archivo `.env` para personalizar la clave de cifrado de las credenciales.
 
 ### 4. Iniciar el Dashboard
 
@@ -130,10 +136,16 @@ proyecto-ama-intent/
 ├── monitoring/              # 📊 Configuración de Prometheus y Grafana
 ├── docker/                  # 🐳 Dockerfiles y scripts de entrada
 ├── plugins/                 # 🧩 Plugins del Dashboard
-├── src/                     # 📦 Código fuente principal de la aplicación
 ├── templates/               # 📄 Templates HTML para el Dashboard
 ├── static/                  # 🎨 Archivos estáticos (CSS, JS)
 ├── scripts/                 # ⚙️ Scripts de utilidad y migración
+│   ├── migrate_credentials.py # 🔑 Migración del sistema de credenciales
+├── src/                     # 📦 Código fuente principal de la aplicación
+│   ├── config_manager/      # 🔐 Gestores de configuración y seguridad
+│   │   └── credentials_manager.py # Lógica de cifrado de credenciales
+│   ├── personal_dashboard/
+│   │   └── routers/
+│   │       └── credentials.py # Endpoints de gestión de credenciales
 ├── kimi_k2_integration.py   # 🚀 Punto de entrada de la nueva integración
 ├── examples_kimi_k2.py      # 📚 Ejemplos de uso de los nuevos componentes
 └── README.md                # 📖 Este archivo

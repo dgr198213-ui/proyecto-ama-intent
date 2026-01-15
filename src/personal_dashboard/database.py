@@ -47,6 +47,9 @@ class User(Base):
     )
     debug_sessions = relationship("DebugSession", back_populates="user")
     content_entries = relationship("ContentEntry", back_populates="user")
+    credentials = relationship(
+        "ServiceCredential", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         return {
@@ -158,6 +161,47 @@ class ContentEntry(Base):
                 json.loads(self.export_formats) if self.export_formats else []
             ),
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class ServiceCredential(Base):
+    """Modelo para almacenar credenciales de servicios externos"""
+
+    __tablename__ = "service_credentials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    service_name = Column(
+        String(50), nullable=False
+    )  # "openai", "anthropic", "google", etc.
+    api_key = Column(Text, nullable=False)  # Clave API cifrada
+    api_base = Column(String(255), default="")  # URL base personalizada
+    api_version = Column(String(50), default="")  # Versión de API
+    organization = Column(String(100), default="")  # Org ID para OpenAI
+    project_id = Column(String(100), default="")  # Para Google Cloud
+    region = Column(String(50), default="")  # Para servicios regionales
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relación
+    user = relationship("User", back_populates="credentials")
+
+    def __repr__(self):
+        return f"<ServiceCredential(service='{self.service_name}', user_id={self.user_id})>"
+
+    def to_dict(self, decrypt_key=False):
+        return {
+            "id": self.id,
+            "service_name": self.service_name,
+            "api_base": self.api_base,
+            "api_version": self.api_version,
+            "organization": self.organization,
+            "project_id": self.project_id,
+            "region": self.region,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
