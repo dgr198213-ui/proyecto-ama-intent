@@ -27,6 +27,7 @@ def utcnow():
     """Retorna el tiempo UTC actual de forma compatible."""
     return datetime.now(timezone.utc)
 
+
 Base = declarative_base()
 
 # ==================== MODELOS DE DATOS ====================
