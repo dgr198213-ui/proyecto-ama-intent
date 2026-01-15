@@ -6,7 +6,7 @@ Fecha: Enero 2026
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import (
@@ -20,8 +20,12 @@ from sqlalchemy import (
     Text,
     create_engine,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+
+
+def utcnow():
+    """Retorna el tiempo UTC actual de forma compatible."""
+    return datetime.now(timezone.utc)
 
 Base = declarative_base()
 
@@ -38,7 +42,7 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
     last_login = Column(DateTime, nullable=True)
 
     # Relaciones
@@ -73,8 +77,8 @@ class Project(Base):
     description = Column(Text, nullable=True)
     status = Column(String(20), default="active")  # active, completed, archived
     tags = Column(Text, nullable=True)  # JSON array
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relaciones
     user = relationship("User", back_populates="projects")
@@ -106,7 +110,7 @@ class DebugSession(Base):
     confidence_score = Column(Float, default=0.0)
     time_saved_minutes = Column(Integer, default=0)  # tiempo estimado ahorrado
     code_snippet = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     # Relaciones
     user = relationship("User", back_populates="debug_sessions")
@@ -141,7 +145,7 @@ class ContentEntry(Base):
     metrics = Column(Text, nullable=True)  # JSON con métricas
     exported = Column(Boolean, default=False)
     export_formats = Column(Text, nullable=True)  # JSON array
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     # Relaciones
     user = relationship("User", back_populates="content_entries")
@@ -181,8 +185,8 @@ class ServiceCredential(Base):
     project_id = Column(String(100), default="")  # Para Google Cloud
     region = Column(String(50), default="")  # Para servicios regionales
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relación
     user = relationship("User", back_populates="credentials")
@@ -215,7 +219,7 @@ class SystemLog(Base):
     message = Column(Text, nullable=False)
     module = Column(String(50), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     def to_dict(self):
         return {
