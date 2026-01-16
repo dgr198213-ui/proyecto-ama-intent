@@ -4,9 +4,10 @@
 
 **AMA-Intent** es un sistema de inteligencia artificial biomimética diseñado para la orquestación de tareas complejas, utilizando una arquitectura cognitiva modular basada en **Motores Qodeia** [1]. La versión 2.0 introduce una capa de aplicación crítica: el **AMA-Intent Personal Dashboard**, una interfaz web robusta y segura para la productividad personal y el desarrollo de proyectos.
 
-El sistema se divide en dos componentes principales:
+El sistema se divide en tres componentes principales:
 1.  **Core Cognitivo**: La infraestructura de IA que gestiona la memoria, la decisión y la gobernanza.
 2.  **Personal Dashboard**: La interfaz de usuario que expone las capacidades de IA a través de herramientas prácticas de desarrollo y contenido.
+3.  **MiniMax Multimodal Integration**: Una nueva capa de servicios que dota al sistema de capacidades de voz, generación de imágenes y notificaciones inteligentes.
 
 ## 🚀 AMA-Intent Personal Dashboard v2.0
 
@@ -25,156 +26,107 @@ El Dashboard v2.0 representa una actualización fundamental, enfocada en la pers
 | **Knowledge Graph & GraphRAG** | Construcción de grafos de conocimiento del código y sistema de consultas inteligentes. | Análisis profundo de arquitectura y dependencias mediante lenguaje natural. |
 | **Credential Manager** | Panel de gestión segura de claves API para servicios externos (OpenAI, Anthropic, Google, etc.). | Almacenamiento cifrado y centralizado de credenciales de IA. |
 
-### 🔌 Plugins Incluidos (v2.0)
+## 🎙️ Integración MiniMax: Capacidades Multimodales (Nuevo)
 
-*   **Productivity Tracker**: Monitorea el tiempo dedicado a proyectos y sugiere optimizaciones de flujo de trabajo.
-*   **Code Quality Analyzer**: Analiza la complejidad ciclomática y adherencia a PEP8 en proyectos Python.
-*   **Wellness Assistant**: Asistente de bienestar que sugiere pausas activas y ejercicios de ergonomía.
-*   **Knowledge Graph & GraphRAG**: Construye un grafo semántico del proyecto y permite realizar consultas complejas sobre la estructura del código usando IA contextualizada.
+AMA-Intent ahora cuenta con una integración profunda con **MiniMax**, permitiendo una interacción más rica y humana a través de múltiples canales.
+
+### 🛠️ Servicios MiniMax Implementados
+
+*   **AudioService**: Síntesis de voz de alta fidelidad con control emocional (alegría, tristeza, enfado, etc.). Permite la lectura de resultados de análisis y guías de voz.
+*   **ImageService**: Generación dinámica de imágenes, diagramas de arquitectura e iconografía personalizada para el dashboard.
+*   **NotificationService**: Sistema de alertas multimodales que combina texto, audio emocional e iconos visuales para una comunicación más efectiva.
+
+### 🔌 Plugins Potenciados con MiniMax
+
+*   **Voice Assistant (Nuevo)**: Un asistente de voz completo que puede leer tareas, resultados de código y proporcionar notificaciones audibles.
+*   **Wellness Assistant v2.0**: Ahora incluye **pausas guiadas por voz** y sesiones de meditación, mejorando significativamente la experiencia de bienestar del desarrollador.
 
 ## 🚀 Integración Kimi K2: Capacidades Avanzadas de IA
 
-Inspirado en las innovaciones de Kimi K2, AMA-Intent ahora incorpora un conjunto de componentes de vanguardia para mejorar radicalmente su rendimiento, estabilidad y capacidades de razonamiento a largo plazo.
+Inspirado en las innovaciones de Kimi K2, AMA-Intent incorpora componentes de vanguardia para mejorar su rendimiento y estabilidad.
 
 | Componente | Descripción | Beneficio Principal |
 | :--- | :--- | :--- |
-| **MuonClip Optimizer** | Un optimizador de entrenamiento que previene *loss spikes* y estabiliza la convergencia de modelos. | Entrenamiento de *Reward Models* 100% estable y hasta un 15% más rápido. |
-| **Long Horizon Agent** | Agente capaz de mantener la coherencia y el enfoque en tareas de hasta 300 pasos de ejecución. | Resolución de problemas complejos que antes eran inabordables (e.g., análisis de proyectos completos). |
-| **Agentic Data Synthesizer** | Sistema que genera datos de entrenamiento sintéticos y verificables para *Reward Models* (RLVR). | Creación de datasets de alta calidad a gran escala, reduciendo la dependencia de datos humanos. |
-| **Context Caching + MLA** | Un sistema de cacheo de prefijos de contexto y una arquitectura de atención latente (MLA). | Reducción de hasta un 90% en costos de API y latencia, permitiendo el uso de contextos de 256K tokens. |
+| **MuonClip Optimizer** | Un optimizador de entrenamiento que previene *loss spikes* y estabiliza la convergencia. | Entrenamiento de *Reward Models* estable y hasta un 15% más rápido. |
+| **Long Horizon Agent** | Agente capaz de mantener el enfoque en tareas de hasta 300 pasos de ejecución. | Resolución de problemas complejos de arquitectura completa. |
+| **Agentic Data Synthesizer** | Sistema que genera datos de entrenamiento sintéticos y verificables (RLVR). | Creación de datasets de alta calidad a gran escala. |
+| **Context Caching + MLA** | Cacheo de prefijos de contexto y arquitectura de atención latente (MLA). | Reducción de hasta un 90% en costos de API y latencia. |
 
-Estos componentes trabajan en sinergia para llevar las capacidades de AMA-Intent a un nuevo nivel de eficiencia y autonomía.
+## 🔐 Integración SDDCS-Kaprekar: Seguridad y Sincronización
 
-## 🔐 Integración SDDCS-Kaprekar: Seguridad y Sincronización Avanzada
-
-AMA-Intent v2.0 ahora incorpora el **protocolo SDDCS-Kaprekar**, un sistema de sincronización y validación basado en el algoritmo de Kaprekar que proporciona:
+AMA-Intent v2.0 incorpora el **protocolo SDDCS-Kaprekar** para una validación y sincronización ultra-eficiente.
 
 | Componente | Descripción | Beneficio Principal |
 | :--- | :--- | :--- |
-| **Agent State Synchronization** | Sincronización de estado del Long Horizon Agent con checkpoints de 4 bytes. | Validación ligera y eficiente del estado del agente en cada paso de ejecución. |
-| **Context Cache Validation** | Validación de integridad de contextos cacheados mediante fingerprints SDDCS. | Detección inmediata de corrupción o alteración de contextos almacenados. |
-| **Synthetic Data Verification** | Firma y verificación de datos sintéticos generados por el Agentic Data Synthesizer. | Garantía de integridad de datos de entrenamiento sintéticos. |
-| **Plugin State Persistence** | Persistencia ligera de estado de plugins con fingerprints de 4 bytes. | Reducción de overhead de almacenamiento manteniendo integridad total. |
-| **JWT with Rolling Seeds** | Autenticación JWT con semillas rotativas basadas en Kaprekar. | Tokens de sesión más seguros con rotación automática de claves. |
-| **Automated Backup System** | Sistema de backup con verificación de integridad y soporte S3. | Garantía de recuperación ante desastres y persistencia de datos. |
-| **Prometheus & Grafana** | Stack de monitoreo completo con métricas personalizadas SDDCS. | Visibilidad total del rendimiento y salud del sistema en tiempo real. |
-
-La integración SDDCS-Kaprekar proporciona una capa adicional de seguridad y confiabilidad al sistema, especialmente crítica para operaciones de larga duración del Long Horizon Agent.
+| **Agent State Sync** | Sincronización de estado con checkpoints de 4 bytes. | Validación ligera y eficiente del estado del agente. |
+| **Context Cache Validation** | Integridad de contextos mediante fingerprints SDDCS. | Detección inmediata de corrupción de datos. |
+| **JWT with Rolling Seeds** | Autenticación JWT con semillas rotativas basadas en Kaprekar. | Tokens de sesión dinámicos y más seguros. |
 
 ---
 
 ## 🛠️ Instalación y Uso
 
-Para poner en marcha el sistema, se recomienda seguir los siguientes pasos:
-
-### 1. Clonar el Repositorio
+### 1. Clonar e Instalar
 
 ```bash
 git clone https://github.com/dgr198213-ui/proyecto-ama-intent.git
 cd proyecto-ama-intent
+# Instalación recomendada en modo editable
+pip install -e .
 ```
 
-### 2. Instalar Dependencias
-
-El Dashboard v2.0 requiere dependencias adicionales para la base de datos y la autenticación.
+### 2. Configuración Inicial
 
 ```bash
-# Instalar dependencias del Dashboard
-pip install -r requirements_dashboard.txt
-```
-
-### 3. Configuración Inicial
-
-Crea el archivo de configuración de entorno y ejecuta los scripts de migración.
-
-```bash
-# Copiar el archivo de ejemplo
 cp .env.example .env
-
-# Ejecutar la migración principal
 python3 scripts/migrate_and_upgrade.py
-
-# Ejecutar la migración para el sistema de credenciales
 python3 scripts/migrate_credentials.py
 ```
 
-> **Nota de Seguridad**: Se recomienda configurar la variable de entorno `CREDENTIALS_SECRET_KEY` en su archivo `.env` para personalizar la clave de cifrado de las credenciales.
-
-### 4. Iniciar el Dashboard
-
-El servidor web se iniciará en el puerto 8000.
+### 3. Iniciar el Dashboard
 
 ```bash
 python3 ama_personal_dashboard.py
 ```
 
-El Dashboard estará accesible en **http://localhost:8000**.
+Accede en **http://localhost:8000** (Admin: `admin` / `admin123`).
 
-### Credenciales por Defecto
+### 🧪 Ejecutar Pruebas y Demos
 
-| Rol | Usuario | Contraseña |
-| :--- | :--- | :--- |
-| **Administrador** | `admin` | `admin123` |
+```bash
+# Ejecutar suite de pruebas completa
+pytest tests/
+
+# Probar integración MiniMax
+python3 demo_minimax_integration.py
+```
 
 ## 📦 Estructura del Proyecto
 
-La estructura del proyecto ha sido consolidada para separar el Core Cognitivo de la capa de Aplicación (Dashboard).
-
 ```
 proyecto-ama-intent/
-├── agents/                  # 🧠 Agentes autónomos (Nuevo: Long Horizon Agent)
-│   └── long_horizon/
-├── cortex/                  # 💡 Core cognitivo y modelos de atención (Mejorado con MLA)
-│   └── attention/
-├── data/                    # 💾 Gestión de datos (Nuevo: Síntesis de datos agenticos)
-│   └── synthesis/
-├── llm/                     # 🔌 Conectores a LLMs (Nuevo: Caching de contexto)
-│   └── connector/
-├── training/                # 🏋️ Módulos de entrenamiento (Nuevo: MuonClip Optimizer)
-│   └── optimizers/
-├── integrations/            # 🔐 Integraciones externas (Nuevo: SDDCS-Kaprekar)
-├── monitoring/              # 📊 Configuración de Prometheus y Grafana
-├── docker/                  # 🐳 Dockerfiles y scripts de entrada
-├── plugins/                 # 🧩 Plugins del Dashboard
-├── templates/               # 📄 Templates HTML para el Dashboard
-├── static/                  # 🎨 Archivos estáticos (CSS, JS)
-├── scripts/                 # ⚙️ Scripts de utilidad y migración
-│   ├── migrate_credentials.py # 🔑 Migración del sistema de credenciales
-├── src/                     # 📦 Código fuente principal de la aplicación
-│   ├── config_manager/      # 🔐 Gestores de configuración y seguridad
-│   │   └── credentials_manager.py # Lógica de cifrado de credenciales
-│   ├── personal_dashboard/
-│   │   └── routers/
-│   │       └── credentials.py # Endpoints de gestión de credenciales
-├── kimi_k2_integration.py   # 🚀 Punto de entrada de la nueva integración
-├── examples_kimi_k2.py      # 📚 Ejemplos de uso de los nuevos componentes
-└── README.md                # 📖 Este archivo
+├── minimax_integration/      # 🎙️ Nuevo: Servicios de Audio, Imagen y Notificaciones
+├── agents/                   # 🧠 Agentes autónomos (Long Horizon Agent)
+├── cortex/                   # 💡 Core cognitivo y modelos de atención
+├── plugins/                  # 🧩 Plugins (Voice Assistant, Wellness v2.0)
+├── src/                      # 📦 Código fuente principal
+├── tests/                    # 🧪 Suite de pruebas unitarias e integración
+├── demo_minimax_integration.py # 🚀 Demo de capacidades multimodales
+└── setup.py                  # ⚙️ Configuración de instalación y dependencias
 ```
-
-## 🧠 Fundamentos Teóricos: El Sistema SDDCS
-
-El núcleo de AMA-Intent v2.0 implementa el **Sistema de Diccionario Dinámico de Compensación Estocástica (SDDCS)**, basado en principios de geometría diferencial y teoría de la información para garantizar la preservación de la información mutua ante el ruido.
-
-Para más detalles, consulte:
-- **docs/SDDCS_FORMULATION.md**: Formulación matemática completa del sistema.
 
 ## 📚 Documentación Adicional
 
-Para una comprensión más profunda de los componentes, consulte los siguientes documentos:
-
-- **DASHBOARD_README.md**: Guía completa de la arquitectura, módulos y uso del Personal Dashboard v2.0.
-- **docs/API.md**: Documentación de los *endpoints* de la API RESTful.
-- **docs/PLUGINS.md**: Guía para el desarrollo de *plugins* para el Dashboard.
-- **docs/SDDCS_KAPREKAR_INTEGRATION.md**: Guía completa de integración del protocolo SDDCS-Kaprekar.
-- **docs/DEPLOYMENT_GUIDE.md**: Guía detallada de despliegue con Docker y CI/CD.
-- **docs/SDDCS_IMPACT_ANALYSIS.md**: Análisis detallado del impacto de la integración SDDCS.
-- **integrations/README.md**: Documentación de módulos de integración externos.
+- **RESUMEN_MEJORAS_MINIMAX.md**: Impacto y detalles de la integración multimodal.
+- **docs/MINIMAX_INTEGRATION.md**: Guía técnica de los servicios MiniMax.
+- **docs/SDDCS_FORMULATION.md**: Formulación matemática del sistema.
+- **DASHBOARD_README.md**: Guía completa del Personal Dashboard.
 
 ## 📞 Soporte y Contribución
 
-Este proyecto es parte de la iniciativa AMA-Intent. Para reportar problemas, sugerir mejoras o contribuir, por favor consulte la documentación interna.
+Este proyecto es parte de la iniciativa AMA-Intent. Para reportar problemas o contribuir, consulte la documentación interna.
 
 ## Referencias
 
-[1] AMA-Intent v2.0: Sistema de Cerebro Artificial Biomimético (Documentación Interna del Core).
+[1] AMA-Intent v2.0: Sistema de Cerebro Artificial Biomimético (Documentación Interna).
 [2] Reporte de Actualización - AMA-Intent Personal Dashboard v2 (Documento Interno).
