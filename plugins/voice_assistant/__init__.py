@@ -142,7 +142,9 @@ class VoiceAssistantPlugin:
 
         if isinstance(analysis_data, dict):
             if "quality_score" in analysis_data:
-                text += f"Puntuación de calidad: {analysis_data['quality_score']} de 100. "
+                text += (
+                    f"Puntuación de calidad: {analysis_data['quality_score']} de 100. "
+                )
 
             if "issues_found" in analysis_data:
                 issues = analysis_data["issues_found"]
@@ -199,9 +201,7 @@ class VoiceAssistantPlugin:
             "eyes": "Descansa tu vista. Mira hacia un punto lejano durante 20 segundos para relajar tus ojos.",
         }
 
-        message = messages.get(
-            reminder_type, "Es momento de cuidar tu bienestar."
-        )
+        message = messages.get(reminder_type, "Es momento de cuidar tu bienestar.")
 
         return self.notification_service.notify_wellness_reminder(
             reminder_type=reminder_type, message=message, with_audio=True
@@ -245,7 +245,9 @@ if __name__ == "__main__":
 
     # Test 1: Hablar
     print("\nTest 1: Speak")
-    result = plugin.speak("Hola, soy tu asistente de voz de AMA Intent", emotion="happy")
+    result = plugin.speak(
+        "Hola, soy tu asistente de voz de AMA Intent", emotion="happy"
+    )
     print(f"Resultado: {result}")
 
     # Test 2: Listar voces

@@ -7,8 +7,8 @@ para guías de meditación, ejercicios y recordatorios.
 """
 
 import sys
-from pathlib import Path
 import time
+from pathlib import Path
 
 # Añadir el directorio raíz al path
 root_dir = Path(__file__).parent.parent.parent

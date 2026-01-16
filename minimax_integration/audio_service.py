@@ -5,11 +5,11 @@ Audio Service - MiniMax Integration
 Servicio para síntesis de voz, clonación y diseño de voces usando MiniMax.
 """
 
+import json
 import os
 import subprocess
-import json
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class AudioService:

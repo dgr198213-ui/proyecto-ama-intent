@@ -5,8 +5,9 @@ Notification Service - MiniMax Integration
 Sistema de notificaciones multimodales que combina texto, voz e imágenes.
 """
 
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Optional
+
 from .audio_service import AudioService
 from .image_service import ImageService
 
@@ -35,12 +36,8 @@ class NotificationService:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Inicializar servicios
-        self.audio_service = AudioService(
-            output_dir=str(self.output_dir / "audio")
-        )
-        self.image_service = ImageService(
-            output_dir=str(self.output_dir / "images")
-        )
+        self.audio_service = AudioService(output_dir=str(self.output_dir / "audio"))
+        self.image_service = ImageService(output_dir=str(self.output_dir / "images"))
 
         # Configuración de voces por tipo de notificación
         self.voice_config = {

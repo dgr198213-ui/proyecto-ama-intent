@@ -66,7 +66,8 @@ def demo_audio_service():
     print("\n3. Generación de notificación audible")
     print("   Generando notificación de tarea completada...")
     notification = audio_service.generate_notification_sound(
-        notification_type="success", message="El análisis de código ha finalizado con éxito"
+        notification_type="success",
+        message="El análisis de código ha finalizado con éxito",
     )
 
     if notification["success"]:
@@ -97,7 +98,11 @@ def demo_image_service():
         {"from": "Dashboard Web", "to": "Core Cognitivo", "type": "uses"},
         {"from": "Core Cognitivo", "to": "Knowledge Graph", "type": "queries"},
         {"from": "Core Cognitivo", "to": "Sistema de Plugins", "type": "manages"},
-        {"from": "Dashboard Web", "to": "Base de Datos SQLite", "type": "stores data in"},
+        {
+            "from": "Dashboard Web",
+            "to": "Base de Datos SQLite",
+            "type": "stores data in",
+        },
     ]
 
     result = image_service.generate_architecture_diagram(components, relationships)
@@ -114,7 +119,8 @@ def demo_image_service():
     print("   Creando icono del cerebro artificial...")
 
     icon_result = image_service.generate_icon(
-        description="artificial brain with neural connections and circuits", style="modern"
+        description="artificial brain with neural connections and circuits",
+        style="modern",
     )
 
     if icon_result["success"]:

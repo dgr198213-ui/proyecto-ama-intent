@@ -5,11 +5,11 @@ Image Service - MiniMax Integration
 Servicio para generación de imágenes usando MiniMax.
 """
 
+import json
 import os
 import subprocess
-import json
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 
 class ImageService:
@@ -114,7 +114,9 @@ class ImageService:
         if relationships:
             prompt += "Connections: "
             for rel in relationships:
-                prompt += f"{rel['from']} {rel.get('type', 'connects to')} {rel['to']}, "
+                prompt += (
+                    f"{rel['from']} {rel.get('type', 'connects to')} {rel['to']}, "
+                )
 
         prompt += (
             "Clean, modern design with clear labels, arrows showing data flow, "
@@ -124,7 +126,10 @@ class ImageService:
         return self.generate_image(prompt=prompt, aspect_ratio="16:9")
 
     def generate_knowledge_graph_visualization(
-        self, nodes: List[str], edges: List[Dict[str, str]], title: str = "Knowledge Graph"
+        self,
+        nodes: List[str],
+        edges: List[Dict[str, str]],
+        title: str = "Knowledge Graph",
     ) -> Dict[str, Any]:
         """
         Genera una visualización de un grafo de conocimiento.
@@ -137,7 +142,9 @@ class ImageService:
         Returns:
             Dict con información sobre la visualización generada
         """
-        prompt = f"Knowledge graph visualization titled '{title}' with {len(nodes)} nodes: "
+        prompt = (
+            f"Knowledge graph visualization titled '{title}' with {len(nodes)} nodes: "
+        )
         prompt += ", ".join(nodes[:10])  # Limitar a 10 para no saturar el prompt
 
         if len(nodes) > 10:
@@ -152,9 +159,7 @@ class ImageService:
 
         return self.generate_image(prompt=prompt, aspect_ratio="16:9")
 
-    def generate_icon(
-        self, description: str, style: str = "modern"
-    ) -> Dict[str, Any]:
+    def generate_icon(self, description: str, style: str = "modern") -> Dict[str, Any]:
         """
         Genera un icono basado en una descripción.
 
