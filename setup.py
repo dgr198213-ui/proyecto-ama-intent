@@ -23,6 +23,7 @@ setup(
         "gunicorn==21.2.0",
         "uvicorn==0.24.0",
         "passlib==1.7.4",
+        "cryptography>=42.0.0",
     ],
     author="AMA-Intent Team",
     description="Sistema de Cerebro Artificial Biomimético",
