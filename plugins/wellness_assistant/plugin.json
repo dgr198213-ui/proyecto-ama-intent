@@ -1,11 +1,11 @@
 {
   "name": "Wellness Assistant",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "AMA-Intent Team",
-  "description": "Asistente de bienestar que sugiere pausas activas y ejercicios de ergonomía durante el desarrollo.",
+  "description": "Asistente de bienestar mejorado con guías de audio para pausas, ejercicios, meditación y recordatorios.",
   "plugin_type": "utility",
   "entry_point": "wellness_assistant.main.WellnessPlugin",
-  "dependencies": [],
+  "dependencies": ["minimax_integration"],
   "min_dashboard_version": "2.0.0",
   "permissions": ["read"],
   "settings_schema": {

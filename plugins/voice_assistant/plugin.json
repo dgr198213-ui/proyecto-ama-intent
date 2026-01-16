@@ -1,0 +1,26 @@
+{
+  "name": "Voice Assistant",
+  "version": "1.0.0",
+  "description": "Asistente de voz con capacidades de síntesis de voz y notificaciones audibles",
+  "author": "AMA-Intent Team",
+  "enabled": true,
+  "config": {
+    "default_voice": null,
+    "default_emotion": "neutral",
+    "default_speed": 1.0,
+    "auto_read_notifications": true,
+    "auto_read_analysis": true,
+    "auto_read_todos": false
+  },
+  "capabilities": [
+    "text_to_speech",
+    "voice_notifications",
+    "voice_selection",
+    "audio_feedback",
+    "analysis_reading",
+    "todo_reading"
+  ],
+  "dependencies": [
+    "minimax_integration"
+  ]
+}

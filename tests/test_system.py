@@ -5,14 +5,13 @@ import unittest
 # Asegura que la raíz del proyecto y la carpeta src estén en el path
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, root_dir)
-sys.path.insert(0, os.path.join(root_dir, 'src'))
+sys.path.insert(0, os.path.join(root_dir, "src"))
 
 try:
     from ama_main import AMAIntentSystem
 except ImportError:
     # Intento de respaldo si está dentro de un paquete src
     from src.ama_main import AMAIntentSystem
-
 
 
 class TestAMAIntentSystem(unittest.TestCase):
