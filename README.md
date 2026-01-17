@@ -26,15 +26,16 @@ El Dashboard v2.0 representa una actualización fundamental, enfocada en la pers
 | **Knowledge Graph & GraphRAG** | Construcción de grafos de conocimiento del código y sistema de consultas inteligentes. | Análisis profundo de arquitectura y dependencias mediante lenguaje natural. |
 | **Credential Manager** | Panel de gestión segura de claves API para servicios externos (OpenAI, Anthropic, Google, etc.). | Almacenamiento cifrado y centralizado de credenciales de IA. |
 
-## 🎙️ Integración MiniMax: Capacidades Multimodales (Nuevo)
+## 🎙️ Integración MiniMax: Capacidades Multimodales (Dashboard v2.1)
 
-AMA-Intent ahora cuenta con una integración profunda con **MiniMax**, permitiendo una interacción más rica y humana a través de múltiples canales.
+AMA-Intent ahora cuenta con una integración profunda con **MiniMax**, permitiendo una interacción más rica y humana a través de múltiples canales en el Dashboard v2.1.
 
 ### 🛠️ Servicios MiniMax Implementados
 
-*   **AudioService**: Síntesis de voz de alta fidelidad con control emocional (alegría, tristeza, enfado, etc.). Permite la lectura de resultados de análisis y guías de voz.
-*   **ImageService**: Generación dinámica de imágenes, diagramas de arquitectura e iconografía personalizada para el dashboard.
-*   **NotificationService**: Sistema de alertas multimodales que combina texto, audio emocional e iconos visuales para una comunicación más efectiva.
+*   **AudioService**: Síntesis de voz de alta fidelidad (Español/Inglés). Permite la lectura de resultados de análisis, guías de voz y **resúmenes de actividad de GitHub**.
+*   **ImageService**: Generación dinámica de imágenes, diagramas de arquitectura e **informes visuales de productividad**.
+*   **NotificationService**: Sistema de alertas multimodales que combina texto, audio emocional e iconos visuales, ahora con **persistencia en base de datos**.
+*   **Analytics Manager**: Nuevo módulo que genera informes de productividad automáticos con soporte visual y de voz.
 
 ### 🔌 Plugins Potenciados con MiniMax
 
@@ -97,8 +98,11 @@ Accede en **http://localhost:8000** (Admin: `admin` / `admin123`).
 # Ejecutar suite de pruebas completa
 pytest tests/
 
-# Probar integración MiniMax
+# Probar integración MiniMax básica
 python3 demo_minimax_integration.py
+
+# Probar integración Dashboard v2.1 + MiniMax
+python3 test_dashboard_minimax_integration.py
 ```
 
 ## 📦 Estructura del Proyecto
