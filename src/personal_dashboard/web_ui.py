@@ -67,9 +67,13 @@ async def add_user_to_templates(request: Request, call_next):
 @app.get("/", response_class=HTMLResponse)
 async def dashboard_home(request: Request, db: Session = Depends(get_db)):
     """Main dashboard page"""
-    user = getattr(request.state, "user", None)
-    if not user:
-        return RedirectResponse(url="/login")
+    # COMENTA ESTO:
+    # user = getattr(request.state, "user", None)
+    # if not user:
+    #     return RedirectResponse(url="/login")
+
+    # FUERZA EL USUARIO (Usa el que creó el script de migración, usualmente id=1):
+    user = db.query(User).filter(User.username == "admin").first()
 
     # Cargar datos del usuario
     projects = db.query(Project).filter(Project.user_id == user.id).all()
