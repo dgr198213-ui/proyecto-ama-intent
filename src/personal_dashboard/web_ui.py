@@ -18,6 +18,7 @@ from .auth import router as auth_router
 from .database import ContentEntry, DebugSession, Project, User, get_db
 from .plugin_system import router as plugin_router
 from .routers.credentials import router as credentials_router
+from .routers.analytics import router as analytics_router
 
 app = FastAPI(title="AMA-Intent Personal Dashboard v2")
 
@@ -25,6 +26,7 @@ app = FastAPI(title="AMA-Intent Personal Dashboard v2")
 app.include_router(auth_router)
 app.include_router(plugin_router)
 app.include_router(credentials_router)
+app.include_router(analytics_router)
 
 # Mount static files
 static_dir = Path("static")

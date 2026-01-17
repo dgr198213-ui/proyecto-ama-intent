@@ -55,6 +55,9 @@ class User(Base):
     credentials = relationship(
         "ServiceCredential", back_populates="user", cascade="all, delete-orphan"
     )
+    notifications = relationship(
+        "MultimodalNotification", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         return {
@@ -207,6 +210,37 @@ class ServiceCredential(Base):
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class MultimodalNotification(Base):
+    """Modelo para notificaciones enriquecidas con MiniMax"""
+
+    __tablename__ = "multimodal_notifications"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String(100), nullable=False)
+    message = Column(Text, nullable=False)
+    notification_type = Column(String(20), default="info")  # info, success, warning, error
+    audio_path = Column(String(255), nullable=True)
+    image_path = Column(String(255), nullable=True)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utcnow)
+
+    # Relaciones
+    user = relationship("User", back_populates="notifications")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "message": self.message,
+            "type": self.notification_type,
+            "audio_url": f"/static/audio/{os.path.basename(self.audio_path)}" if self.audio_path else None,
+            "image_url": f"/static/images/{os.path.basename(self.image_path)}" if self.image_path else None,
+            "is_read": self.is_read,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
 

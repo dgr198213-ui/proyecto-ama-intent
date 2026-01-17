@@ -55,10 +55,7 @@ class ImageService:
         """
         args = {
             "prompt": prompt,
-            "aspect_ratio": aspect_ratio,
-            "n": n,
-            "prompt_optimizer": optimize_prompt,
-            "output_directory": str(self.output_dir),
+            "output_dir": str(self.output_dir),
         }
 
         try:

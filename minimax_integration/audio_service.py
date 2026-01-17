@@ -37,7 +37,7 @@ class AudioService:
     def text_to_speech(
         self,
         text: str,
-        voice_id: Optional[str] = None,
+        voice_id: Optional[str] = "Spanish_Narrator",
         emotion: str = "neutral",
         speed: float = 1.0,
         output_filename: Optional[str] = None,
@@ -47,7 +47,7 @@ class AudioService:
 
         Args:
             text: El texto a convertir en voz
-            voice_id: ID de la voz a usar (ej: "male-qn-qingse", "audiobook_female_1")
+            voice_id: ID de la voz a usar (ej: "Spanish_Narrator")
             emotion: Emoción de la voz ("happy", "sad", "angry", "neutral", etc.)
             speed: Velocidad de la voz (0.5 a 2.0)
             output_filename: Nombre del archivo de salida (opcional)
@@ -58,13 +58,9 @@ class AudioService:
         # Preparar argumentos
         args = {
             "text": text,
-            "emotion": emotion,
-            "speed": speed,
-            "output_directory": str(self.output_dir),
+            "voice_id": voice_id,
+            "output_dir": str(self.output_dir),
         }
-
-        if voice_id:
-            args["voice_id"] = voice_id
 
         # Ejecutar comando MCP
         try:
