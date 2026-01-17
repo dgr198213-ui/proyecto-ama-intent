@@ -222,7 +222,9 @@ class MultimodalNotification(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String(100), nullable=False)
     message = Column(Text, nullable=False)
-    notification_type = Column(String(20), default="info")  # info, success, warning, error
+    notification_type = Column(
+        String(20), default="info"
+    )  # info, success, warning, error
     audio_path = Column(String(255), nullable=True)
     image_path = Column(String(255), nullable=True)
     is_read = Column(Boolean, default=False)
@@ -237,8 +239,16 @@ class MultimodalNotification(Base):
             "title": self.title,
             "message": self.message,
             "type": self.notification_type,
-            "audio_url": f"/static/audio/{os.path.basename(self.audio_path)}" if self.audio_path else None,
-            "image_url": f"/static/images/{os.path.basename(self.image_path)}" if self.image_path else None,
+            "audio_url": (
+                f"/static/audio/{os.path.basename(self.audio_path)}"
+                if self.audio_path
+                else None
+            ),
+            "image_url": (
+                f"/static/images/{os.path.basename(self.image_path)}"
+                if self.image_path
+                else None
+            ),
             "is_read": self.is_read,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

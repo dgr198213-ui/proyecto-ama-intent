@@ -11,6 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from minimax_integration import AudioService, ImageService
+
 from .database import DebugSession, Project, SystemLog
 
 
@@ -32,7 +33,9 @@ class AnalyticsManager:
                 func.count(DebugSession.id).label("count"),
                 func.sum(DebugSession.time_saved_minutes).label("total_time_saved"),
             )
-            .filter(DebugSession.user_id == user_id, DebugSession.created_at >= since_date)
+            .filter(
+                DebugSession.user_id == user_id, DebugSession.created_at >= since_date
+            )
             .first()
         )
 
@@ -45,8 +48,12 @@ class AnalyticsManager:
 
         # Errores frecuentes
         top_errors = (
-            self.db.query(DebugSession.error_type, func.count(DebugSession.id).label("count"))
-            .filter(DebugSession.user_id == user_id, DebugSession.created_at >= since_date)
+            self.db.query(
+                DebugSession.error_type, func.count(DebugSession.id).label("count")
+            )
+            .filter(
+                DebugSession.user_id == user_id, DebugSession.created_at >= since_date
+            )
             .group_by(DebugSession.error_type)
             .order_by(func.count(DebugSession.id).desc())
             .limit(3)
@@ -64,7 +71,7 @@ class AnalyticsManager:
     async def generate_visual_report(self, user_id: int) -> str:
         """Genera un gráfico de productividad usando MiniMax ImageService"""
         metrics = self.get_productivity_metrics(user_id)
-        
+
         prompt = (
             f"A professional productivity dashboard chart showing: "
             f"{metrics['debug_count']} debug sessions completed, "
@@ -72,16 +79,14 @@ class AnalyticsManager:
             f"{metrics['active_projects']} active projects. "
             f"Style: modern, clean, data visualization, blue and white theme."
         )
-        
-        image_path = self.image.generate_image(
-            prompt=prompt
-        )
+
+        image_path = self.image.generate_image(prompt=prompt)
         return image_path
 
     def generate_voice_summary(self, user_id: int) -> str:
         """Genera un resumen de voz de la actividad usando MiniMax AudioService"""
         metrics = self.get_productivity_metrics(user_id)
-        
+
         text = (
             f"Hola. Aquí tienes tu resumen de productividad de los últimos {metrics['period_days']} días. "
             f"Has completado {metrics['debug_count']} sesiones de resolución de errores, "
@@ -89,21 +94,16 @@ class AnalyticsManager:
             f"Actualmente tienes {metrics['active_projects']} proyectos activos. "
             f"Sigue así, vas por muy buen camino."
         )
-        
+
         audio_path = self.audio.text_to_speech(
-            text=text,
-            voice_id="Spanish_Narrator",
-            emotion="happy"
+            text=text, voice_id="Spanish_Narrator", emotion="happy"
         )
         return audio_path
 
-    def log_event(self, level: str, message: str, module: str, user_id: Optional[int] = None):
+    def log_event(
+        self, level: str, message: str, module: str, user_id: Optional[int] = None
+    ):
         """Registra un evento en los logs del sistema"""
-        log = SystemLog(
-            level=level,
-            message=message,
-            module=module,
-            user_id=user_id
-        )
+        log = SystemLog(level=level, message=message, module=module, user_id=user_id)
         self.db.add(log)
         self.db.commit()

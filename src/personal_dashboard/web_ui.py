@@ -17,8 +17,8 @@ from .auth import get_current_user_from_session
 from .auth import router as auth_router
 from .database import ContentEntry, DebugSession, Project, User, get_db
 from .plugin_system import router as plugin_router
-from .routers.credentials import router as credentials_router
 from .routers.analytics import router as analytics_router
+from .routers.credentials import router as credentials_router
 
 app = FastAPI(title="AMA-Intent Personal Dashboard v2")
 
