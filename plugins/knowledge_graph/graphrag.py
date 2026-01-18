@@ -310,12 +310,12 @@ class GraphRAG:
             prompt = f"""
             Eres un experto arquitecto de software analizando el proyecto AMA-Intent.
             Usa el siguiente contexto extraído del Grafo de Conocimiento del código para responder la pregunta del usuario.
-            
+
             Contexto:
             {full_context}
-            
+
             Pregunta: {user_query}
-            
+
             Respuesta técnica y detallada:
             """
             # Aquí se llamaría al LLM real

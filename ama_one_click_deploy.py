@@ -323,14 +323,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 def main():
     try:
         from ama_phase_integrator import AMAPhaseIntegrator
-        
+
         print("\\n" + "="*60)
         print(" AMA-Intent v2.0 - Quick Test")
         print("="*60 + "\\n")
-        
+
         ama = AMAPhaseIntegrator()
         result = ama.process_full("Test rápido del sistema")
-        
+
         if result['ok']:
             print(f"✓ Sistema funcional")
             print(f"  Intent: {{result['fase1']['intent']}}")
@@ -341,7 +341,7 @@ def main():
         else:
             print(f"✗ Error: {{result.get('error')}}")
             return 1
-            
+
     except Exception as e:
         print(f"✗ Error: {{e}}")
         import traceback
@@ -480,8 +480,8 @@ cat INTEGRATION_REPORT.txt
 
 ---
 
-**Desarrollado por**: AMA-Intent Team  
-**Versión**: 2.0.0  
+**Desarrollado por**: AMA-Intent Team
+**Versión**: 2.0.0
 **Soporte**: Ver documentación en docs/
 """
 

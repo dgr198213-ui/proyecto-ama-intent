@@ -135,7 +135,7 @@ class EngineResult:
 class BaseEngine:
     """
     Interfaz base para todos los motores Qodeia.
-    
+
     Garantiza:
     - Manejo de errores unificado
     - Logging consistente
@@ -143,7 +143,7 @@ class BaseEngine:
     """
     name: str = "BaseEngine"
     version: str = "1.0.0"
-    
+
     def run(self, payload: Dict[str, Any]) -> EngineResult:
         """Ejecuta motor con manejo de errores automático"""
         try:
@@ -158,11 +158,11 @@ class BaseEngine:
                 error=str(e),
                 trace=traceback.format_exc()
             )
-    
+
     def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Implementación específica del motor (override)"""
         raise NotImplementedError(f"{self.name} must implement _run()")
-    
+
     def info(self) -> Dict[str, str]:
         """Información del motor"""
         return {
@@ -181,91 +181,91 @@ from .base import BaseEngine, EngineResult
 class EngineBus:
     """
     Bus de orquestación de motores.
-    
+
     Permite:
     - Registro dinámico de motores
     - Ejecución individual o en pipeline
     - Logging completo de operaciones
     - Métricas de rendimiento
     """
-    
+
     def __init__(self):
         self._engines: Dict[str, BaseEngine] = {}
         self._log: List[EngineResult] = []
         self._metrics = {"calls": 0, "errors": 0, "avg_time": 0.0}
-    
+
     @property
     def log(self) -> List[EngineResult]:
         """Historial completo de ejecuciones"""
         return list(self._log)
-    
+
     @property
     def metrics(self) -> Dict[str, Any]:
         """Métricas agregadas"""
         return dict(self._metrics)
-    
+
     def register(self, engine: BaseEngine) -> None:
         """Registra motor en el bus"""
         self._engines[engine.name] = engine
         print(f"[BUS] Registrado: {engine.name}")
-    
+
     def has(self, name: str) -> bool:
         """Verifica si motor está registrado"""
         return name in self._engines
-    
+
     def list_engines(self) -> List[str]:
         """Lista todos los motores disponibles"""
         return list(self._engines.keys())
-    
+
     def call(self, name: str, payload: Optional[Dict[str, Any]] = None) -> EngineResult:
         """Ejecuta motor específico"""
         import time
         start = time.time()
-        
+
         if name not in self._engines:
             res = EngineResult(
-                ok=False, 
-                engine=name, 
+                ok=False,
+                engine=name,
                 error=f"Engine '{name}' not registered"
             )
             self._log.append(res)
             self._metrics["errors"] += 1
             return res
-        
+
         res = self._engines[name].run(payload or {})
         elapsed = time.time() - start
-        
+
         self._log.append(res)
         self._metrics["calls"] += 1
         if not res.ok:
             self._metrics["errors"] += 1
-        
+
         # Actualizar promedio de tiempo
         n = self._metrics["calls"]
         self._metrics["avg_time"] = (
             (self._metrics["avg_time"] * (n-1) + elapsed) / n
         )
-        
+
         return res
-    
+
     def pipeline(self, names: List[str], payload: Dict[str, Any]) -> EngineResult:
         """Ejecuta pipeline secuencial de motores"""
         cur = dict(payload or {})
         last = None
-        
+
         for n in names:
             last = self.call(n, cur)
             if not last.ok:
                 return last  # Fallo inmediato
             # Merge para chaining
             cur.update(last.data or {})
-        
+
         return last if last else EngineResult(
-            ok=True, 
-            engine="pipeline", 
+            ok=True,
+            engine="pipeline",
             data=cur
         )
-    
+
     def export_log(self, path: str):
         """Exporta log a JSON"""
         import json
@@ -365,7 +365,7 @@ from .utils import stable_hash, clamp, now_ms
 class AMAGEngine(BaseEngine):
     """
     AMA-G v2.0: Gobernanza reforzada para AMA-Intent
-    
+
     Características:
     - Auditoría determinista con SHA-256
     - Risk scoring automático
@@ -374,11 +374,11 @@ class AMAGEngine(BaseEngine):
     """
     name = "AMA-G"
     version = "2.0.0"
-    
+
     def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         txt = str(payload.get("text", ""))[:20000]
         intent = payload.get("intent") or self._infer_intent(txt)
-        
+
         audit = {
             "audit_id": stable_hash({"t": txt, "intent": intent, "ms": now_ms()}),
             "intent": intent,
@@ -386,27 +386,27 @@ class AMAGEngine(BaseEngine):
             "policy": "deterministic-governance-v2",
             "timestamp": now_ms()
         }
-        
+
         # Validación requerida
         if payload.get("requires_text") and not txt.strip():
             return EngineResult(
-                ok=False, 
-                engine=self.name, 
+                ok=False,
+                engine=self.name,
                 error="Missing required 'text'"
             )
-        
+
         risk = self._basic_risk_score(txt)
         audit["risk_score"] = risk
         audit["risk_level"] = (
-            "low" if risk < 0.3 else 
-            "medium" if risk < 0.7 else 
+            "low" if risk < 0.3 else
+            "medium" if risk < 0.7 else
             "high"
         )
-        
+
         payload_out = dict(payload)
         payload_out["ama_g"] = audit
         return payload_out
-    
+
     def _infer_intent(self, txt: str) -> str:
         """Inferencia de intención por keywords"""
         t = txt.lower()
@@ -419,23 +419,23 @@ class AMAGEngine(BaseEngine):
         if any(k in t for k in ["analizar", "análisis", "diagnosticar"]):
             return "analyze"
         return "general"
-    
+
     def _basic_risk_score(self, txt: str) -> float:
         """Score de riesgo 0.0-1.0"""
         t = txt.lower()
         flags = 0
-        
+
         # Patrones de alto riesgo
         dangerous = [
-            "password", "contraseña", "api key", "token", 
-            "private key", "seed phrase", "rm -rf", 
+            "password", "contraseña", "api key", "token",
+            "private key", "seed phrase", "rm -rf",
             "format c:", "del /s", "powershell -enc"
         ]
-        
+
         for pattern in dangerous:
             if pattern in t:
                 flags += (2 if pattern.startswith("rm") else 1)
-        
+
         return clamp(flags / 8.0, 0.0, 1.0)
 '''
         self._write_file(self.qodeia / "ama_g.py", ama_g_content)
@@ -449,7 +449,7 @@ from .utils import tokenize, mean
 class CognitiveBrainEngine(BaseEngine):
     """
     Cerebro Cognitivo para AMA-Intent
-    
+
     Implementa:
     - Working Memory (últimos 20 inputs)
     - Sistema de decisión por confianza
@@ -457,21 +457,21 @@ class CognitiveBrainEngine(BaseEngine):
     """
     name = "Cognitive-Brain"
     version = "1.0.0"
-    
+
     def __init__(self, wm_size: int = 20):
         self.wm_size = int(wm_size)
         self.working_memory: List[Dict[str, Any]] = []
-    
+
     def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         text = str(payload.get("text", ""))
         toks = tokenize(text)
-        
+
         # Actualizar working memory
         self._push_wm({"text": text, "tokens": toks})
-        
+
         # Decisión basada en contenido
         action, confidence = self._decide(toks, payload)
-        
+
         payload_out = dict(payload)
         payload_out["cognitive"] = {
             "tokens": toks[:200],
@@ -481,18 +481,18 @@ class CognitiveBrainEngine(BaseEngine):
             "context_depth": min(len(self.working_memory), self.wm_size)
         }
         return payload_out
-    
+
     def _push_wm(self, item: Dict[str, Any]) -> None:
         """Añade item a working memory (FIFO)"""
         self.working_memory.append(item)
         if len(self.working_memory) > self.wm_size:
             self.working_memory = self.working_memory[-self.wm_size:]
-    
+
     def _decide(self, toks: List[str], payload: Dict[str, Any]) -> tuple:
         """Decide acción y confianza basado en tokens"""
         if not toks:
             return ("idle", 0.2)
-        
+
         # Patrones de acción
         patterns = {
             "search": ["buscar", "search", "bdc", "encontrar"],
@@ -500,18 +500,18 @@ class CognitiveBrainEngine(BaseEngine):
             "optimize": ["optimizar", "mejorar", "performance", "rendimiento"],
             "analyze": ["analizar", "análisis", "diagnosticar", "revisar"]
         }
-        
+
         for action, keywords in patterns.items():
             if any(t in toks for t in keywords):
                 # Confianza basada en múltiples matches
                 matches = sum(1 for k in keywords if k in toks)
                 confidence = min(0.95, 0.65 + 0.1 * matches)
                 return (action, confidence)
-        
+
         # Confianza por densidad de señal
         density = min(1.0, len(set(toks)) / max(1.0, len(toks)))
         return ("general", 0.5 + 0.4 * density)
-    
+
     def get_context(self, n: int = 5) -> List[str]:
         """Obtiene últimos N textos del working memory"""
         return [item["text"] for item in self.working_memory[-n:]]
@@ -527,7 +527,7 @@ from .utils import idf, tfidf_vec, cosine_sim
 class AssociativeMemoryEngine(BaseEngine):
     """
     Memoria Asociativa con búsqueda semántica
-    
+
     Operaciones:
     - ingest: añadir documentos
     - query: buscar por similitud
@@ -535,26 +535,26 @@ class AssociativeMemoryEngine(BaseEngine):
     """
     name = "Associative-Memory"
     version = "1.0.0"
-    
+
     def __init__(self):
         self.items: List[Dict[str, Any]] = []
         self._idf: Dict[str, float] = {}
-    
+
     def _rebuild(self) -> None:
         """Reconstruye índice TF-IDF"""
         docs = [it["text"] for it in self.items]
         self._idf = idf(docs)
-    
+
     def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         op = payload.get("op", "query")
-        
+
         if op == "ingest":
             return self._ingest(payload)
         elif op == "stats":
             return self._stats()
         else:
             return self._query(payload)
-    
+
     def _ingest(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Añade items al índice"""
         item = {
@@ -564,38 +564,38 @@ class AssociativeMemoryEngine(BaseEngine):
         }
         self.items.append(item)
         self._rebuild()
-        
+
         return {
             "associative": {
                 "ingested": item["id"],
                 "count": len(self.items)
             }
         }
-    
+
     def _query(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Búsqueda por similitud"""
         q = str(payload.get("query", payload.get("text", "")))
         k = int(payload.get("k", 5))
-        
+
         if not self.items:
             return {"associative": {"results": [], "count": 0}}
-        
+
         qv = tfidf_vec(q, self._idf)
         scored: List[Tuple[float, Dict[str, Any]]] = []
-        
+
         for it in self.items:
             iv = tfidf_vec(it["text"], self._idf)
             scored.append((cosine_sim(qv, iv), it))
-        
+
         scored.sort(key=lambda x: x[0], reverse=True)
-        
+
         results = [{
             "score": float(s),
             "id": it["id"],
             "meta": it["meta"],
             "text": it["text"][:400]
         } for s, it in scored[:k]]
-        
+
         return {
             "associative": {
                 "results": results,
@@ -603,7 +603,7 @@ class AssociativeMemoryEngine(BaseEngine):
                 "query": q[:100]
             }
         }
-    
+
     def _stats(self) -> Dict[str, Any]:
         """Estadísticas del índice"""
         return {
@@ -625,17 +625,17 @@ from .utils import idf, tfidf_vec, cosine_sim
 class BDCSearchEngine(BaseEngine):
     """
     BDC Search: Índice semántico para AMA-Intent
-    
+
     Igual que Associative Memory pero con namespace "bdc"
     para compatibilidad con nomenclatura existente.
     """
     name = "BDC-Search"
     version = "1.0.0"
-    
+
     def __init__(self):
         self.docs: List[Dict[str, Any]] = []
         self._idf: Dict[str, float] = {}
-    
+
     def _rebuild(self) -> None:
         texts = [d["text"] for d in self.docs]
         self._idf = idf(texts)
@@ -649,16 +649,16 @@ class BDCSearchEngine(BaseEngine):
             self.docs.extend(new_docs)
             self._rebuild()
             return {"status": "ingested", "count": len(new_docs)}
-        
+
         query = payload.get("query", "")
         k = payload.get("k", 5)
         q_vec = tfidf_vec(query, self._idf)
-        
+
         results = []
         for d in self.docs:
             sim = cosine_sim(q_vec, d.get("vec", {}))
             results.append({"id": d["id"], "score": sim, "text": d["text"]})
-        
+
         results.sort(key=lambda x: x["score"], reverse=True)
         return {"bdc": {"results": results[:k]}}
 '''
@@ -672,31 +672,31 @@ from .base import BaseEngine
 class DMDEngine(BaseEngine):
     """
     DMD: Decision Matrix Driver
-    
+
     Selecciona la mejor alternativa basada en pesos y criterios.
     """
     name = "DMD"
     version = "1.0.0"
-    
+
     def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         alternatives = payload.get("alternatives", [])
         weights = payload.get("weights", {"relevancia": 1.0})
-        
+
         if not alternatives:
             return {"dmd": {"best": None, "scores": []}}
-            
+
         scored = []
         for alt in alternatives:
             score = 0.0
             for criterion, weight in weights.items():
                 score += alt.get("metrics", {}).get(criterion, 0.5) * weight
-            
+
             scored.append({
                 "name": alt.get("name", "unknown"),
                 "score": score,
                 "data": alt
             })
-            
+
         scored.sort(key=lambda x: x["score"], reverse=True)
         return {"dmd": {"best": scored[0], "scores": scored}}
 '''
@@ -713,14 +713,14 @@ class AdaptivePruningEngine(BaseEngine):
     """
     name = "Adaptive-Pruning"
     version = "1.0.0"
-    
+
     def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         items = payload.get("items", [])
         threshold = payload.get("threshold", 0.5)
-        
+
         kept = [it for it in items if it.get("score", 1.0) >= threshold]
         pruned = [it for it in items if it.get("score", 1.0) < threshold]
-        
+
         return {
             "pruning": {
                 "original_count": len(items),
@@ -744,23 +744,23 @@ class LFPIEngine(BaseEngine):
     """
     name = "LFPI"
     version = "1.0.0"
-    
+
     def _run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         gain = payload.get("gain", 0.0)
         loss = payload.get("loss", 0.0)
         feedback = payload.get("feedback", 0.0)
         amplitude = payload.get("amplitude", 1.0)
-        
+
         value = 100 * (gain - loss + amplitude * feedback)
         score = clamp(value, 0, 100)
-        
+
         level = (
             "excellent" if score >= 80 else
             "good" if score >= 60 else
             "fair" if score >= 40 else
             "poor"
         )
-        
+
         return {
             "lfpi": {
                 "value": score,

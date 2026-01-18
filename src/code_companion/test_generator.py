@@ -49,7 +49,7 @@ class Test{func_name.title()}(unittest.TestCase):
         """Test for {func_name}"""
         # TODO: Add test cases
         pass
-    
+
     def test_{func_name}_edge_cases(self):
         """Test edge cases"""
         # TODO: Add edge case tests

@@ -70,18 +70,18 @@ class WellnessAssistantPlugin:
         """
         script = f"""
         Es hora de tomar un descanso de {duration_minutes} minutos.
-        
+
         Primero, levántate de tu silla y estira tus brazos hacia arriba.
         Mantén la posición durante 5 segundos.
-        
+
         Ahora, gira tu cuello suavemente hacia la izquierda y hacia la derecha.
         Repite tres veces.
-        
+
         Estira tus hombros moviendo los brazos en círculos.
         Cinco repeticiones hacia adelante, y cinco hacia atrás.
-        
+
         Finalmente, camina un poco y bebe agua.
-        
+
         Tu descanso ha terminado. Regresa renovado a tu trabajo.
         """
 
@@ -118,63 +118,63 @@ class WellnessAssistantPlugin:
         scripts = {
             "breathing": """
                 Bienvenido a esta sesión de respiración consciente.
-                
+
                 Siéntate cómodamente con la espalda recta.
                 Cierra los ojos suavemente.
-                
+
                 Inhala profundamente por la nariz contando hasta cuatro.
                 Uno, dos, tres, cuatro.
-                
+
                 Retén el aire contando hasta cuatro.
                 Uno, dos, tres, cuatro.
-                
+
                 Exhala lentamente por la boca contando hasta seis.
                 Uno, dos, tres, cuatro, cinco, seis.
-                
+
                 Repite este ciclo tres veces más a tu propio ritmo.
-                
+
                 Cuando termines, abre los ojos lentamente.
                 Sesión completada.
             """,
             "body_scan": """
                 Bienvenido a esta sesión de escaneo corporal.
-                
+
                 Siéntate o recuéstate cómodamente.
                 Cierra los ojos.
-                
+
                 Lleva tu atención a tus pies. Nota cualquier sensación.
                 Relaja tus pies completamente.
-                
+
                 Ahora, mueve tu atención a tus piernas. Libera cualquier tensión.
-                
+
                 Continúa hacia tu abdomen. Respira profundamente.
                 Siente cómo se expande y contrae.
-                
+
                 Lleva tu atención a tu pecho y hombros.
                 Deja caer los hombros, libera la tensión.
-                
+
                 Finalmente, relaja tu cuello, tu mandíbula y tu rostro.
-                
+
                 Toma tres respiraciones profundas.
                 Abre los ojos lentamente cuando estés listo.
             """,
             "mindfulness": """
                 Bienvenido a esta práctica de atención plena.
-                
+
                 Encuentra una posición cómoda.
                 Respira naturalmente.
-                
+
                 Observa tus pensamientos sin juzgarlos.
                 Como nubes que pasan en el cielo.
-                
+
                 Si tu mente divaga, simplemente nota que ha divagado.
                 Y vuelve suavemente a tu respiración.
-                
+
                 No hay forma correcta o incorrecta de hacer esto.
                 Solo estar presente en este momento.
-                
+
                 Continúa durante unos minutos más.
-                
+
                 Cuando estés listo, abre los ojos.
                 Gracias por practicar.
             """,
@@ -211,12 +211,12 @@ class WellnessAssistantPlugin:
         """
         script = """
         Momento de revisar tu postura.
-        
+
         Siéntate con la espalda recta.
         Los pies apoyados en el suelo.
         Los hombros relajados, no elevados.
         La pantalla a la altura de los ojos.
-        
+
         Mantén esta postura correcta.
         """
 
@@ -237,14 +237,14 @@ class WellnessAssistantPlugin:
         """
         script = """
         Ejercicio de descanso visual.
-        
+
         Mira hacia un punto lejano, al menos a 6 metros de distancia.
         Mantén la mirada durante 20 segundos.
-        
+
         Ahora, parpadea rápidamente 10 veces.
-        
+
         Cierra los ojos durante 10 segundos.
-        
+
         Abre los ojos lentamente.
         Ejercicio completado. Tus ojos están descansados.
         """
@@ -266,25 +266,25 @@ class WellnessAssistantPlugin:
         """
         script = """
         Rutina de estiramientos de escritorio.
-        
+
         Ejercicio uno: Estiramiento de cuello.
         Inclina tu cabeza hacia la derecha, mantén 10 segundos.
         Ahora hacia la izquierda, mantén 10 segundos.
-        
+
         Ejercicio dos: Estiramiento de hombros.
         Lleva tu brazo derecho cruzando el pecho.
         Con el brazo izquierdo, presiona suavemente.
         Mantén 15 segundos. Repite con el otro brazo.
-        
+
         Ejercicio tres: Estiramiento de espalda.
         Entrelaza tus dedos y estira los brazos hacia adelante.
         Redondea tu espalda. Mantén 15 segundos.
-        
+
         Ejercicio cuatro: Estiramiento de muñecas.
         Extiende tu brazo derecho con la palma hacia arriba.
         Con la otra mano, tira suavemente de los dedos hacia abajo.
         Mantén 10 segundos. Repite con la otra mano.
-        
+
         Rutina completada. Excelente trabajo.
         """
 

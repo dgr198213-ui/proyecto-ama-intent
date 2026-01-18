@@ -241,19 +241,19 @@ def test_{func_name}():
     TODO: Add specific test cases
     """
     # Example test cases
-    
+
     # Test normal case
     # result = {func_name}(...)
     # assert result == expected_value
-    
+
     # Test edge cases
     # result = {func_name}(...)
     # assert result == expected_value
-    
+
     # Test error cases
     # with pytest.raises(ExpectedError):
     #     {func_name}(...)
-    
+
     pass  # Remove this when adding actual tests
 
 # Additional tests can be added here

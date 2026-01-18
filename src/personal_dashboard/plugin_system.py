@@ -318,25 +318,25 @@ from typing import Dict, Any
 
 class PluginMain:
     """Clase principal del plugin {plugin_name}"""
-    
+
     def __init__(self):
         self.name = "{plugin_name}"
         self.version = "1.0.0"
         self.settings = {{}}
-    
+
     def register_hooks(self, plugin_manager):
         """Registra hooks en el gestor de plugins"""
         # Ejemplo: plugin_manager.register_hook('error_analysis', self.enhance_error_analysis)
         pass
-    
+
     def on_enable(self):
         """Se ejecuta cuando el plugin se habilita"""
         print(f"✅ Plugin {{self.name}} habilitado")
-    
+
     def on_disable(self):
         """Se ejecuta cuando el plugin se deshabilita"""
         print(f"⚠️ Plugin {{self.name}} deshabilitado")
-    
+
     def get_info(self) -> Dict[str, Any]:
         """Devuelve información del plugin"""
         return {{
@@ -344,7 +344,7 @@ class PluginMain:
             "version": self.version,
             "description": "Plugin de ejemplo"
         }}
-    
+
     # Añadir tus métodos específicos aquí
     def custom_action(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Acción personalizada del plugin"""

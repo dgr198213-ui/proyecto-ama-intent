@@ -2,6 +2,7 @@
 """
 Migración de BD para soporte SDDCS
 """
+
 import argparse
 import os
 import sqlite3
@@ -18,8 +19,7 @@ def migrate(create_schema_only=False):
     cursor = conn.cursor()
 
     # Tabla para checkpoints de agentes
-    cursor.execute(
-        """
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS agent_checkpoints (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             agent_id INTEGER NOT NULL,
@@ -29,12 +29,10 @@ def migrate(create_schema_only=False):
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (agent_id) REFERENCES users(id)
         )
-    """
-    )
+    """)
 
     # Tabla para fingerprints de cache
-    cursor.execute(
-        """
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS cache_fingerprints (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cache_key TEXT NOT NULL UNIQUE,
@@ -44,12 +42,10 @@ def migrate(create_schema_only=False):
             token_count INTEGER NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """
-    )
+    """)
 
     # Tabla para estados de plugins
-    cursor.execute(
-        """
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS plugin_states_sddcs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             plugin_id TEXT NOT NULL,
@@ -60,12 +56,10 @@ def migrate(create_schema_only=False):
             FOREIGN KEY (user_id) REFERENCES users(id),
             UNIQUE(plugin_id, user_id)
         )
-    """
-    )
+    """)
 
     # Tabla para JWT rolling seeds
-    cursor.execute(
-        """
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS jwt_rolling_seeds (
             user_id INTEGER PRIMARY KEY,
             current_seed INTEGER NOT NULL,
@@ -73,8 +67,7 @@ def migrate(create_schema_only=False):
             last_refresh TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
-    """
-    )
+    """)
 
     conn.commit()
     conn.close()

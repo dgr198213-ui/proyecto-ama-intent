@@ -195,45 +195,45 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def main():
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='Cerebro Artificial - IA Local Gobernada')
     parser.add_argument('--cli', action='store_true', help='Modo CLI (terminal)')
     parser.add_argument('--gui', action='store_true', help='Modo GUI (interfaz gráfica)')
     parser.add_argument('--version', action='version', version='Cerebro Artificial v1.0.0')
-    
+
     args = parser.parse_args()
-    
+
     if args.cli:
         print("Iniciando modo CLI...")
         from cli_interactive import InteractiveCLI
         cli = InteractiveCLI()
         cli.run()
-    
+
     elif args.gui:
         print("Iniciando modo GUI...")
         try:
             import tkinter as tk
             from brain_gui import BrainGUI
-            
+
             root = tk.Tk()
             app = BrainGUI(root)
             root.mainloop()
-        
+
         except ImportError:
             print("Error: tkinter no está instalado")
             print("Instálalo con: sudo apt-get install python3-tk (Linux)")
             print("O usa --cli para modo terminal")
-    
+
     else:
         # Por defecto, intentar GUI
         try:
             import tkinter as tk
             from brain_gui import BrainGUI
-            
+
             root = tk.Tk()
             app = BrainGUI(root)
             root.mainloop()
-        
+
         except ImportError:
             print("tkinter no disponible, iniciando CLI...")
             from cli_interactive import InteractiveCLI

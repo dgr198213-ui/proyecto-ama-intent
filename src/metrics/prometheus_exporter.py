@@ -276,13 +276,11 @@ class SystemMetricsCollector:
             cursor = conn.cursor()
 
             # Contar usuarios con actividad reciente
-            cursor.execute(
-                """
-                SELECT COUNT(DISTINCT user_id) 
-                FROM user_activity 
+            cursor.execute("""
+                SELECT COUNT(DISTINCT user_id)
+                FROM user_activity
                 WHERE timestamp > datetime('now', '-5 minutes')
-            """
-            )
+            """)
 
             count = cursor.fetchone()[0]
             metrics.active_users.set(count)
