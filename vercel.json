@@ -18,5 +18,8 @@
       "src": "/(.*)",
       "dest": "src/personal_dashboard/web_ui.py"
     }
-  ]
+  ],
+  "env": {
+    "PYTHONPATH": ".:src:src/personal_dashboard"
+  }
 }
