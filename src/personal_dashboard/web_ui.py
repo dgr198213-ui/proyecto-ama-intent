@@ -46,20 +46,21 @@ async def add_user_to_templates(request: Request, call_next):
     # Siempre asignamos el usuario administrador por defecto
     db_manager = next(get_db())
     user = db_manager.query(User).filter(User.username == "admin").first()
-    
+
     if not user:
         # Si no existe el admin, lo creamos para asegurar operatividad
         from .auth import get_password_hash
+
         user = User(
             username="admin",
             email="admin@ama-intent.local",
             password_hash=get_password_hash("admin123"),
-            is_active=True
+            is_active=True,
         )
         db_manager.add(user)
         db_manager.commit()
         db_manager.refresh(user)
-    
+
     request.state.user = user
 
     response = await call_next(request)
