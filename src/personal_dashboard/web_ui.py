@@ -42,20 +42,25 @@ templates = Jinja2Templates(directory=templates_dir)
 # Middleware para inyectar usuario en templates
 @app.middleware("http")
 async def add_user_to_templates(request: Request, call_next):
-    # Intentar obtener token de cookie
-    token = request.cookies.get("session_token")
-    if token:
-        from .auth import decode_access_token
-
-        payload = decode_access_token(token)
-        if payload:
-            db_manager = next(get_db())
-            user = db_manager.query(User).filter(User.id == payload.get("sub")).first()
-            request.state.user = user
-        else:
-            request.state.user = None
-    else:
-        request.state.user = None
+    # AMA-Intent v2.0: Acceso directo sin login (Modo PC Local)
+    # Siempre asignamos el usuario administrador por defecto
+    db_manager = next(get_db())
+    user = db_manager.query(User).filter(User.username == "admin").first()
+    
+    if not user:
+        # Si no existe el admin, lo creamos para asegurar operatividad
+        from .auth import get_password_hash
+        user = User(
+            username="admin",
+            email="admin@ama-intent.local",
+            password_hash=get_password_hash("admin123"),
+            is_active=True
+        )
+        db_manager.add(user)
+        db_manager.commit()
+        db_manager.refresh(user)
+    
+    request.state.user = user
 
     response = await call_next(request)
     return response
@@ -67,13 +72,7 @@ async def add_user_to_templates(request: Request, call_next):
 @app.get("/", response_class=HTMLResponse)
 async def dashboard_home(request: Request, db: Session = Depends(get_db)):
     """Main dashboard page"""
-    # COMENTA ESTO:
-    # user = getattr(request.state, "user", None)
-    # if not user:
-    #     return RedirectResponse(url="/login")
-
-    # FUERZA EL USUARIO (Usa el que creó el script de migración, usualmente id=1):
-    user = db.query(User).filter(User.username == "admin").first()
+    user = getattr(request.state, "user", None)
 
     # Cargar datos del usuario
     projects = db.query(Project).filter(Project.user_id == user.id).all()
@@ -101,20 +100,12 @@ async def login_page(request: Request):
 @app.get("/debug", response_class=HTMLResponse)
 async def debug_assistant(request: Request):
     user = getattr(request.state, "user", None)
-    if not user:
-        return RedirectResponse(url="/login")
     return templates.TemplateResponse("debug.html", {"request": request, "user": user})
 
 
-@app.get("/api/overview")
-async def get_overview(request: Request, db: Session = Depends(get_db)):
-    # user = getattr(request.state, "user", None)
-    # if not user:
-    #     return JSONResponse(status_code=401, content={"detail": "No autenticado"})
-
-    user = db.query(User).filter(User.username == "admin").first()
-    # ... resto del código ...
-
+@app.get("/projects", response_class=HTMLResponse)
+async def projects_view(request: Request, db: Session = Depends(get_db)):
+    user = getattr(request.state, "user", None)
     projects = db.query(Project).filter(Project.user_id == user.id).all()
     return templates.TemplateResponse(
         "projects.html", {"request": request, "projects": projects, "user": user}
@@ -124,8 +115,6 @@ async def get_overview(request: Request, db: Session = Depends(get_db)):
 @app.get("/content", response_class=HTMLResponse)
 async def content_creator(request: Request):
     user = getattr(request.state, "user", None)
-    if not user:
-        return RedirectResponse(url="/login")
     return templates.TemplateResponse(
         "content.html", {"request": request, "user": user}
     )
@@ -137,8 +126,6 @@ async def content_creator(request: Request):
 @app.get("/api/overview")
 async def get_overview(request: Request, db: Session = Depends(get_db)):
     user = getattr(request.state, "user", None)
-    if not user:
-        return JSONResponse(status_code=401, content={"detail": "No autenticado"})
 
     project_count = db.query(Project).filter(Project.user_id == user.id).count()
     debug_count = db.query(DebugSession).filter(DebugSession.user_id == user.id).count()
