@@ -1,25 +1,21 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "src/personal_dashboard/web_ui.py",
-      "use": "@vercel/python",
-      "config": {
-        "runtime": "python3.11"
-      }
+  "functions": {
+    "src/personal_dashboard/web_ui.py": {
+      "runtime": "python3.11"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
+      "source": "/static/(.*)",
+      "destination": "/static/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "src/personal_dashboard/web_ui.py"
+      "source": "/(.*)",
+      "destination": "src/personal_dashboard/web_ui.py"
     }
   ],
   "env": {
-    "PYTHONPATH": ".:src:src/personal_dashboard"
+    "PYTHONPATH": "src"
   }
 }
