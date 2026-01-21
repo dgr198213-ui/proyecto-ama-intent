@@ -293,7 +293,19 @@ class DatabaseManager:
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
         self.db_path = db_path
-        self.engine = create_engine(f"sqlite:///{db_path}", echo=False)
+
+        database_url = os.environ.get("DATABASE_URL")
+
+        if database_url:
+            # Usar la URL de la base de datos externa (PostgreSQL, etc.)
+            # El driver psycopg2-binary ya fue añadido a requirements.txt
+            self.engine = create_engine(database_url, echo=False)
+            print(f"✅ Conectando a base de datos externa: {database_url[:20]}...")
+        else:
+            # Fallback a SQLite para desarrollo local
+            self.engine = create_engine(f"sqlite:///{db_path}", echo=False)
+            print(f"⚠️ Conectando a base de datos local (SQLite): {db_path}")
+
         self.SessionLocal = sessionmaker(
             autocommit=False, autoflush=False, bind=self.engine
         )

@@ -44,24 +44,28 @@ templates = Jinja2Templates(directory=templates_dir)
 async def add_user_to_templates(request: Request, call_next):
     # AMA-Intent v2.0: Acceso directo sin login (Modo PC Local)
     # Siempre asignamos el usuario administrador por defecto
-    db_manager = next(get_db())
-    user = db_manager.query(User).filter(User.username == "admin").first()
+    # Usamos un bloque try/finally para asegurar que la sesión de DB se cierre correctamente
+    db = next(get_db())
+    try:
+        user = db.query(User).filter(User.username == "admin").first()
 
-    if not user:
-        # Si no existe el admin, lo creamos para asegurar operatividad
-        from .auth import get_password_hash
+        if not user:
+            # Si no existe el admin, lo creamos para asegurar operatividad
+            from .auth import get_password_hash
 
-        user = User(
-            username="admin",
-            email="admin@ama-intent.local",
-            password_hash=get_password_hash("admin123"),
-            is_active=True,
-        )
-        db_manager.add(user)
-        db_manager.commit()
-        db_manager.refresh(user)
+            user = User(
+                username="admin",
+                email="admin@ama-intent.local",
+                password_hash=get_password_hash("admin123"),
+                is_active=True,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
 
-    request.state.user = user
+        request.state.user = user
+    finally:
+        db.close()
 
     response = await call_next(request)
     return response
