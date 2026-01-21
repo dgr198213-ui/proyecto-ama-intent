@@ -66,9 +66,7 @@ class CognitiveMemory:
     4. Estadísticas detalladas
     """
 
-    def __init__(
-        self, db_path: str = "memory/cognitive.db", enable_cache: bool = True
-    ):
+    def __init__(self, db_path: str = "memory/cognitive.db", enable_cache: bool = True):
         self.db_path = db_path
         self._ensure_db_exists()
         self.working_memory = {}
@@ -83,8 +81,7 @@ class CognitiveMemory:
         cursor = conn.cursor()
 
         # Tabla de memoria a corto plazo
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS short_term_memory (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT NOT NULL,
@@ -96,12 +93,10 @@ class CognitiveMemory:
                 created_at TEXT NOT NULL,
                 relevance_score REAL DEFAULT 1.0
             )
-        """
-        )
+        """)
 
         # Tabla de memoria a largo plazo
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS long_term_memory (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 pattern_key TEXT UNIQUE NOT NULL,
@@ -111,51 +106,38 @@ class CognitiveMemory:
                 consolidated_at TEXT NOT NULL,
                 importance REAL DEFAULT 1.0
             )
-        """
-        )
+        """)
 
         # Índices optimizados
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_intent
             ON short_term_memory(intent)
-        """
-        )
+        """)
 
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_timestamp
             ON short_term_memory(timestamp DESC)
-        """
-        )
+        """)
 
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_confidence
             ON short_term_memory(confidence DESC)
-        """
-        )
+        """)
 
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_access_count
             ON short_term_memory(access_count DESC)
-        """
-        )
+        """)
 
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_pattern_key
             ON long_term_memory(pattern_key)
-        """
-        )
+        """)
 
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_frequency
             ON long_term_memory(frequency DESC)
-        """
-        )
+        """)
 
         conn.commit()
         conn.close()
@@ -291,9 +273,7 @@ class CognitiveMemory:
 
         return results
 
-    def search_by_intent(
-        self, intent: str, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    def search_by_intent(self, intent: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Búsqueda específica por intent (NUEVA)"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -389,9 +369,7 @@ class CognitiveMemory:
         conn.commit()
         conn.close()
 
-    def get_long_term_patterns(
-        self, min_frequency: int = 1
-    ) -> List[Dict[str, Any]]:
+    def get_long_term_patterns(self, min_frequency: int = 1) -> List[Dict[str, Any]]:
         """Obtener patrones consolidados (MEJORADA)"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -416,17 +394,13 @@ class CognitiveMemory:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT COUNT(*), AVG(confidence), AVG(relevance_score)
             FROM short_term_memory
-        """
-        )
+        """)
         short_count, avg_conf, avg_rel = cursor.fetchone()
 
-        cursor.execute(
-            "SELECT COUNT(*), AVG(importance) FROM long_term_memory"
-        )
+        cursor.execute("SELECT COUNT(*), AVG(importance) FROM long_term_memory")
         long_count, avg_imp = cursor.fetchone()
 
         cursor.execute("SELECT MAX(access_count) FROM short_term_memory")

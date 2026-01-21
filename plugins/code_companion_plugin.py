@@ -50,17 +50,11 @@ class CodeCompanionPlugin:
         analysis = {
             "lines": len(lines),
             "non_empty_lines": len([line for line in lines if line.strip()]),
-            "comments": len(
-                [line for line in lines if line.strip().startswith("#")]
-            ),
+            "comments": len([line for line in lines if line.strip().startswith("#")]),
             "functions": len([line for line in lines if "def " in line]),
             "classes": len([line for line in lines if "class " in line]),
             "imports": len(
-                [
-                    line
-                    for line in lines
-                    if "import " in line or "from " in line
-                ]
+                [line for line in lines if "import " in line or "from " in line]
             ),
         }
 
@@ -114,9 +108,7 @@ class CodeCompanionPlugin:
 
         return recs
 
-    def execute_code(
-        self, code: str, language: str = "python"
-    ) -> Dict[str, Any]:
+    def execute_code(self, code: str, language: str = "python") -> Dict[str, Any]:
         """Ejecutar código de forma segura"""
         if language not in self.supported_languages:
             return {"error": f"Unsupported language: {language}"}
@@ -217,12 +209,8 @@ class CodeCompanionPlugin:
             "total_functions": len(functions),
             "total_classes": len(classes),
             "total_imports": len(imports),
-            "documented_functions": len(
-                [f for f in functions if f.get("docstring")]
-            ),
-            "documented_classes": len(
-                [c for c in classes if c.get("docstring")]
-            ),
+            "documented_functions": len([f for f in functions if f.get("docstring")]),
+            "documented_classes": len([c for c in classes if c.get("docstring")]),
             "coverage": self._calculate_doc_coverage(functions, classes),
         }
 
@@ -237,9 +225,7 @@ class CodeCompanionPlugin:
             "markdown": markdown,
         }
 
-    def _parse_function(
-        self, lines: List[str], start_idx: int
-    ) -> Dict[str, Any]:
+    def _parse_function(self, lines: List[str], start_idx: int) -> Dict[str, Any]:
         """Parsear definición de función"""
         line = lines[start_idx].strip()
 
@@ -337,9 +323,7 @@ class CodeCompanionPlugin:
             "line": start_idx + 1,
         }
 
-    def _generate_markdown(
-        self, functions: List, classes: List, imports: List
-    ) -> str:
+    def _generate_markdown(self, functions: List, classes: List, imports: List) -> str:
         """Generar documentación en formato Markdown"""
         md = ["# Code Documentation\n"]
 
@@ -361,11 +345,7 @@ class CodeCompanionPlugin:
                 if cls.get("methods"):
                     md.append("**Methods:**\n")
                     for method in cls["methods"]:
-                        params = (
-                            f"({method['params']})"
-                            if method["params"]
-                            else "()"
-                        )
+                        params = f"({method['params']})" if method["params"] else "()"
                         md.append(f"- `{method['name']}{params}`")
                         if method.get("docstring"):
                             md.append(f"  - {method['docstring'][:100]}")
@@ -377,9 +357,7 @@ class CodeCompanionPlugin:
             for func in functions:
                 params = f"({func['params']})" if func["params"] else "()"
                 return_info = (
-                    f" -> {func['return_type']}"
-                    if func.get("return_type")
-                    else ""
+                    f" -> {func['return_type']}" if func.get("return_type") else ""
                 )
 
                 md.append(f"### {func['name']}{params}{return_info}\n")

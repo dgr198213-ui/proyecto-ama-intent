@@ -45,9 +45,7 @@ class ActuatorCache:
         content = f"{intent.value}:{str(sorted(context.items()))}"
         return hashlib.md5(content.encode()).hexdigest()
 
-    def get(
-        self, intent: IntentType, context: Dict
-    ) -> Optional[ActionResult]:
+    def get(self, intent: IntentType, context: Dict) -> Optional[ActionResult]:
         """Obtener resultado del cache"""
         key = self._get_key(intent, context)
         if key in self.cache:
@@ -174,9 +172,7 @@ class Actuator:
         """Manejar acciones inmediatas"""
         plugin_name = context.get("plugin")
         if not plugin_name or plugin_name not in self.plugins:
-            return ActionResult(
-                False, None, f"Plugin {plugin_name} not found"
-            )
+            return ActionResult(False, None, f"Plugin {plugin_name} not found")
 
         try:
             plugin = self.plugins[plugin_name]
@@ -188,12 +184,10 @@ class Actuator:
     def _handle_scheduled(self, context: Dict) -> ActionResult:
         """Manejar tareas programadas"""
         # Simulación de scheduler
-        task_id = hashlib.sha256(
-            str(datetime.now().timestamp()).encode()
-        ).hexdigest()[:8]
-        return ActionResult(
-            True, {"task_id": task_id, "status": "scheduled"}
-        )
+        task_id = hashlib.sha256(str(datetime.now().timestamp()).encode()).hexdigest()[
+            :8
+        ]
+        return ActionResult(True, {"task_id": task_id, "status": "scheduled"})
 
     def get_metrics(self) -> Dict[str, Any]:
         """Obtener métricas de rendimiento"""
