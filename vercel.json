@@ -1,7 +1,9 @@
 {
   "version": 2,
   "functions": {
-    "src/personal_dashboard/web_ui.py": {}
+    "src/personal_dashboard/web_ui.py": {
+      "runtime": "@vercel/python"
+    }
   },
   "rewrites": [
     {
