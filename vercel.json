@@ -17,7 +17,6 @@
     }
   ],
   "env": {
-    "PYTHON_VERSION": "3.11",
     "HOST": "0.0.0.0",
     "PORT": "5001",
     "LOG_LEVEL": "INFO",

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 # Use /tmp for serverless environments (like Vercel) where filesystem is read-only
 # Check if we're in a serverless environment by looking for common indicators
-IS_SERVERLESS = os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("LAMBDA_TASK_ROOT")
+IS_SERVERLESS = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("LAMBDA_TASK_ROOT"))
 
 if IS_SERVERLESS:
     # Use /tmp directory for serverless (ephemeral storage)
