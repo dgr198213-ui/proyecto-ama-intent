@@ -1,0 +1,69 @@
+# =============================================================================
+# Docker Compose for AMA-Intent v3
+# Local development and deployment setup
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # AMA-Intent Application
+  ama-intent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ama-intent-v3
+    ports:
+      - "5001:5001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5001
+      - RELOAD=false
+      - OLLAMA_MODEL=llama3.1
+      - LOG_LEVEL=INFO
+      - AMA_SHARED_SECRET=${AMA_SHARED_SECRET:-change-this-secret-in-production}
+      - FERNET_KEY=${FERNET_KEY:-}
+      - MEMORY_CONTEXT_LIMIT=${MEMORY_CONTEXT_LIMIT:-5}
+      - MEMORY_MAX_ENTRIES=${MEMORY_MAX_ENTRIES:-1000}
+      - MEMORY_ARCHIVE_DAYS=${MEMORY_ARCHIVE_DAYS:-30}
+      # Point to Ollama on host machine
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    volumes:
+      # Persist database and logs
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    restart: unless-stopped
+    networks:
+      - ama-network
+    depends_on:
+      - ollama
+
+  # Optional: Ollama service (if running Ollama in container)
+  # Note: This requires significant resources and may not work on all systems
+  # Comment out if you're running Ollama on host machine
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-service
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - ama-network
+    # Uncomment if you have GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+networks:
+  ama-network:
+    driver: bridge
+
+volumes:
+  ollama-data:
+    driver: local
