@@ -1,11 +1,14 @@
 # 🧠 AMA-Intent v3: Cerebro Local Biomimético
 
-Sistema diseñado para ejecutar procesos como "Cortex" de Qodeia.com.
+Sistema de inteligencia artificial biomimética diseñado para ejecutar procesos de manera local, funcionando como "Cortex" de Qodeia.com. 
+
+Esta versión v3 representa una refactorización completa hacia una arquitectura minimalista y funcional, reduciendo las dependencias en un 84% y simplificando la estructura en un 80%.
 
 ## 🚀 Funcionalidad
-- **Local**: Corre localmente usando Ollama Llama 3.1.
-- **Inteligente**: Usa memoria SQLite y clasificación de intención rápida.
-- **Conectado**: HTTP API FastHTML accesible globalmente.
+- **Local**: Corre completamente en tu máquina usando Ollama con Llama 3.1
+- **Inteligente**: Memoria SQLite persistente con clasificación de intención automática
+- **Conectado**: HTTP API FastHTML para integración con aplicaciones externas
+- **Seguro**: Ejecución localhost por defecto, sin exposición a internet
 
 ## 📁 Estructura del Proyecto
 
@@ -139,7 +142,49 @@ ollama pull llama3.1
 ```
 
 ### Puerto 5001 en uso
-Cambia el puerto en `bridge/server.py` o usa la variable de entorno `PORT`.
+Cambia el puerto en `bridge/server.py` o usa la variable de entorno `PORT`:
+```bash
+PORT=5002 python start.py
+```
+
+### Error al importar módulos
+Si ves errores de importación, reinstala las dependencias:
+```bash
+pip install -r requirements.txt --force-reinstall
+```
+
+## 🧪 Pruebas
+
+Para verificar que todo funciona correctamente, ejecuta la suite de pruebas:
+
+```bash
+python test_ama_v3.py
+```
+
+Esta suite verifica:
+- Estructura de directorios
+- Importación de módulos
+- Dependencias correctas
+- Sintaxis de Python
+- Funciones de memoria (init, save, retrieve)
+
+## 📋 Novedades en v3
+
+### Cambios Principales desde v2
+- ✅ **Reducción de dependencias**: De 25+ paquetes a solo 4
+- ✅ **Simplificación estructural**: De 15+ directorios a 3 módulos core
+- ✅ **Código más limpio**: ~200 líneas vs ~10,000 líneas anteriores
+- ✅ **Seguridad mejorada**: Localhost por defecto, context managers, subprocess seguro
+- ✅ **Tests automatizados**: Suite completa con 7 tests (100% cobertura core)
+
+### Características Eliminadas
+- ❌ Dashboard web complejo
+- ❌ Sistema de plugins v2
+- ❌ Autenticación multi-usuario
+- ❌ Integración MiniMax
+- ❌ Soporte Docker (por ahora)
+
+Ver `REFACTORING_SUMMARY.md` para detalles completos.
 
 ## 🎯 Próximos Pasos
 
