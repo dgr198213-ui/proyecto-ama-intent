@@ -1,0 +1,17 @@
+[project]
+name = "proyecto-ama-intent"
+version = "3.2.0"
+description = "Sistema de Cerebro Artificial Biomimético con gobernanza AMA-G"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "python-fasthtml",
+    "ollama",
+    "python-dotenv",
+    "uvicorn",
+    "cryptography"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
