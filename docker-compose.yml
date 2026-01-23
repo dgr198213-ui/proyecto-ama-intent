@@ -20,6 +20,8 @@ services:
       - RELOAD=false
       - OLLAMA_MODEL=llama3.1
       - LOG_LEVEL=INFO
+      # WARNING: Default AMA_SHARED_SECRET is for local development only.
+      #          For any non-development or long-running deployment, set AMA_SHARED_SECRET via environment variables.
       - AMA_SHARED_SECRET=${AMA_SHARED_SECRET:-change-this-secret-in-production}
       - FERNET_KEY=${FERNET_KEY:-}
       - MEMORY_CONTEXT_LIMIT=${MEMORY_CONTEXT_LIMIT:-5}
