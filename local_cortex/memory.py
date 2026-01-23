@@ -3,7 +3,18 @@ import os
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 
-DB_PATH = "data/ama_memory.db"
+# Use /tmp for serverless environments (like Vercel) where filesystem is read-only
+# Check if we're in a serverless environment by looking for common indicators
+IS_SERVERLESS = os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("LAMBDA_TASK_ROOT")
+
+if IS_SERVERLESS:
+    # Use /tmp directory for serverless (ephemeral storage)
+    DB_PATH = "/tmp/ama_memory.db"
+else:
+    # Use data directory for normal deployments
+    DB_PATH = "data/ama_memory.db"
+    # Ensure the data directory exists
+    os.makedirs("data", exist_ok=True)
 
 
 @contextmanager

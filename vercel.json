@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "name": "ama-intent-v3",
+  "builds": [
+    {
+      "src": "asgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "asgi.py"
+    }
+  ],
+  "env": {
+    "PYTHON_VERSION": "3.11",
+    "HOST": "0.0.0.0",
+    "PORT": "5001",
+    "LOG_LEVEL": "INFO",
+    "OLLAMA_MODEL": "llama3.1"
+  },
+  "build": {
+    "env": {
+      "PYTHON_VERSION": "3.11"
+    }
+  }
+}

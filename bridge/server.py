@@ -67,7 +67,12 @@ def get_security_warnings():
     return warnings
 
 # Inicialización del sistema
-init_db()
+try:
+    init_db()
+    logger.info("✅ Database initialized successfully")
+except Exception as e:
+    logger.warning(f"⚠️ Database initialization failed: {e}. Memory features may be limited.")
+
 brain = LocalBrain()
 app, rt = fast_app()
 
