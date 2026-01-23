@@ -2,3 +2,4 @@ fasthtml
 ollama
 python-dotenv
 uvicorn
+cryptography
