@@ -122,6 +122,74 @@ class TestAMAv3:
         
         print(f"   ✓ Limit parameter works correctly")
 
+    def test_memory_search(self):
+        """Test searching through memories"""
+        from local_cortex.memory import init_db, save_thought, search_thoughts
+        
+        init_db()
+        
+        # Use a unique search term to avoid conflicts with other tests
+        unique_term = "UniqueSearchTerm123"
+        
+        # Save test thoughts with unique term
+        save_thought(f"What is {unique_term}?", f"{unique_term} is a test", "CHAT")
+        save_thought(f"Write a {unique_term} function", f"def test(): return '{unique_term}'", "CODIGO")
+        save_thought(f"Analyze {unique_term} trends", f"{unique_term} is trending", "ANALISIS")
+        
+        # Search for unique term
+        results = search_thoughts(unique_term)
+        assert len(results) == 3, f"Expected 3 results, got {len(results)}"
+        assert all(unique_term in r["input"] or unique_term in r["output"] for r in results), f"Not all results contain '{unique_term}'"
+        
+        print(f"   ✓ Search found {len(results)} matching thoughts")
+
+    def test_memory_stats(self):
+        """Test memory statistics retrieval"""
+        from local_cortex.memory import init_db, save_thought, get_memory_stats
+        
+        init_db()
+        
+        # Save thoughts with different intents
+        save_thought("Chat 1", "Response 1", "CHAT")
+        save_thought("Code 1", "Response 2", "CODIGO")
+        save_thought("Chat 2", "Response 3", "CHAT")
+        
+        stats = get_memory_stats()
+        assert stats["total_interactions"] >= 3, "Stats should show at least 3 interactions"
+        assert "CHAT" in stats["by_intent"], "CHAT intent not found in stats"
+        assert "CODIGO" in stats["by_intent"], "CODIGO intent not found in stats"
+        
+        print(f"   ✓ Stats retrieved correctly: {stats['total_interactions']} total interactions")
+
+    def test_memory_cleanup(self):
+        """Test cleaning up old memories"""
+        from local_cortex.memory import init_db, cleanup_old_thoughts
+        
+        init_db()
+        
+        # Test cleanup (should handle gracefully even with no old entries)
+        deleted = cleanup_old_thoughts(days=365)
+        assert isinstance(deleted, int), "Cleanup should return integer count"
+        
+        print(f"   ✓ Cleanup completed, {deleted} thoughts removed")
+
+    def test_memory_by_intent(self):
+        """Test filtering thoughts by intent"""
+        from local_cortex.memory import init_db, save_thought, get_thoughts_by_intent
+        
+        init_db()
+        
+        # Save thoughts with different intents
+        save_thought("Code question 1", "Code answer 1", "CODIGO")
+        save_thought("Chat question 1", "Chat answer 1", "CHAT")
+        save_thought("Code question 2", "Code answer 2", "CODIGO")
+        
+        # Get only CODIGO intents
+        codigo_thoughts = get_thoughts_by_intent("CODIGO")
+        assert len(codigo_thoughts) >= 2, "Should have at least 2 CODIGO thoughts"
+        
+        print(f"   ✓ Found {len(codigo_thoughts)} thoughts with CODIGO intent")
+
     def test_module_imports(self):
         """Test that all modules can be imported"""
         modules = [
@@ -205,6 +273,10 @@ class TestAMAv3:
             self.run_test("Memory Initialization", self.test_memory_init)
             self.run_test("Memory Save and Retrieve", self.test_memory_save_and_retrieve)
             self.run_test("Memory Limit", self.test_memory_limit)
+            self.run_test("Memory Search", self.test_memory_search)
+            self.run_test("Memory Statistics", self.test_memory_stats)
+            self.run_test("Memory Cleanup", self.test_memory_cleanup)
+            self.run_test("Memory Filter by Intent", self.test_memory_by_intent)
             
         finally:
             self.teardown()

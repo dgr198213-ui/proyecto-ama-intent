@@ -1,14 +1,17 @@
 import ollama
 import logging
+import os
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+log_level = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(level=getattr(logging, log_level), format='%(message)s')
 logger = logging.getLogger(__name__)
 
 
 class LocalBrain:
-    def __init__(self, model="llama3.1"):
-        self.model = model
+    def __init__(self, model=None):
+        self.model = model or os.getenv("OLLAMA_MODEL", "llama3.1")
+        self.timeout = int(os.getenv("OLLAMA_TIMEOUT", "120"))
         self.system_prompt = """
         Eres AMA-Intent v3. Eres un sistema de inteligencia biomimética local.
         Tu "cuerpo" es este servidor local. Tu "mente" es Qodeia.com.
@@ -31,4 +34,13 @@ class LocalBrain:
     def fast_classify(self, text):
         """Decide qué tipo de tarea es sin gastar mucha energía."""
         res = ollama.generate(model=self.model, prompt=f"Clasifica en una palabra [CODIGO, CHAT, ANALISIS]: {text}")
-        return res['response'].strip().upper()
+        classification = res['response'].strip().upper()
+        
+        # Extract confidence if model provides it, otherwise return default
+        confidence = 0.8  # Default confidence
+        
+        # Return structured classification
+        return {
+            "intent": classification,
+            "confidence": confidence
+        }

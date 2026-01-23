@@ -70,7 +70,11 @@ El sistema:
 
 Abre tu navegador en: http://localhost:5001
 
-### API Endpoint
+### Acceder al Panel de Administración
+
+Para ver estadísticas y gestionar el sistema: http://localhost:5001/admin
+
+### API Endpoints
 
 **POST** `/api/synapse`
 
@@ -82,8 +86,94 @@ Abre tu navegador en: http://localhost:5001
 {
   "status": "success",
   "intent": "CHAT|CODIGO|ANALISIS",
+  "confidence": 0.8,
   "response": "Respuesta generada por el modelo",
   "timestamp": "2026-01-23T16:35:20.123456"
+}
+```
+
+**GET** `/api/memory/search?q={query}&limit={limit}`
+
+Busca en la memoria del sistema.
+
+**Parámetros:**
+- `q` (string): Término de búsqueda
+- `limit` (int, opcional): Número máximo de resultados (default: 10)
+
+**Respuesta:**
+```json
+{
+  "status": "success",
+  "query": "Python",
+  "count": 3,
+  "results": [
+    {
+      "timestamp": "2026-01-23T16:35:20.123456",
+      "input": "What is Python?",
+      "output": "Python is...",
+      "intent": "CHAT"
+    }
+  ]
+}
+```
+
+**GET** `/api/memory/stats`
+
+Obtiene estadísticas de la memoria del sistema.
+
+**Respuesta:**
+```json
+{
+  "status": "success",
+  "stats": {
+    "total_interactions": 150,
+    "by_intent": {
+      "CHAT": 80,
+      "CODIGO": 50,
+      "ANALISIS": 20
+    },
+    "first_interaction": "2026-01-20T10:00:00",
+    "last_interaction": "2026-01-23T16:35:20"
+  }
+}
+```
+
+**POST** `/api/memory/cleanup`
+
+Limpia pensamientos antiguos de la memoria.
+
+**Parámetros:**
+- `days` (int, opcional): Días de antigüedad para limpiar (default: 30)
+
+**Respuesta:**
+```json
+{
+  "status": "success",
+  "deleted_count": 25,
+  "message": "Cleaned up 25 thoughts older than 30 days"
+}
+```
+
+**GET** `/api/memory/by-intent/{intent}`
+
+Obtiene pensamientos filtrados por tipo de intención.
+
+**Parámetros:**
+- `intent` (string): CHAT, CODIGO, o ANALISIS
+
+**Respuesta:**
+```json
+{
+  "status": "success",
+  "intent": "CODIGO",
+  "count": 10,
+  "results": [
+    {
+      "timestamp": "2026-01-23T16:35:20",
+      "input": "Write a function",
+      "output": "def example(): ..."
+    }
+  ]
 }
 ```
 
@@ -109,11 +199,22 @@ Abre tu navegador en: http://localhost:5001
 ### Variables de Entorno (.env)
 
 ```bash
-# Opcional: configurar modelo diferente
-OLLAMA_MODEL=llama3.1
+# Server Configuration
+HOST=127.0.0.1      # Server binding (localhost for security)
+PORT=5001           # Server port
+RELOAD=false        # Auto-reload (dev only)
 
-# Opcional: cambiar puerto
-PORT=5001
+# Ollama Configuration
+OLLAMA_MODEL=llama3.1  # LLM model to use
+OLLAMA_TIMEOUT=120     # Timeout for Ollama requests in seconds
+
+# Memory Configuration
+MEMORY_CONTEXT_LIMIT=5     # Number of recent thoughts to use as context
+MEMORY_MAX_ENTRIES=1000    # Maximum entries before triggering cleanup
+MEMORY_ARCHIVE_DAYS=30     # Archive thoughts older than N days
+
+# Logging Configuration
+LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 ```
 
 ## 📊 Base de Datos
@@ -167,6 +268,12 @@ Esta suite verifica:
 - Dependencias correctas
 - Sintaxis de Python
 - Funciones de memoria (init, save, retrieve)
+- Búsqueda en memoria
+- Estadísticas de memoria
+- Limpieza de memoria
+- Filtrado por intención
+
+### Tests Actuales: 11/11 ✅
 
 ## 📋 Novedades en v3
 
@@ -175,7 +282,21 @@ Esta suite verifica:
 - ✅ **Simplificación estructural**: De 15+ directorios a 3 módulos core
 - ✅ **Código más limpio**: ~200 líneas vs ~10,000 líneas anteriores
 - ✅ **Seguridad mejorada**: Localhost por defecto, context managers, subprocess seguro
-- ✅ **Tests automatizados**: Suite completa con 7 tests (100% cobertura core)
+- ✅ **Tests automatizados**: Suite completa con 11 tests (100% cobertura core)
+- ✅ **API expandida**: 6 endpoints para gestión completa del sistema
+- ✅ **Panel de administración**: Dashboard web para monitoreo
+- ✅ **Búsqueda en memoria**: Encuentra interacciones previas por palabras clave
+- ✅ **Gestión automática**: Limpieza de memoria antigua
+- ✅ **Configuración flexible**: Variables de entorno para personalización
+
+### Nuevas Características en v3.1
+- ✅ **Sistema de búsqueda**: Busca en memoria histórica
+- ✅ **Estadísticas avanzadas**: Análisis de uso por tipo de intención
+- ✅ **Limpieza automática**: Gestión de memoria con archivado
+- ✅ **Filtros por intención**: Recupera interacciones específicas
+- ✅ **Panel de admin**: Interfaz web para monitoreo del sistema
+- ✅ **Mejor manejo de errores**: Códigos HTTP apropiados y logging
+- ✅ **Confidence scoring**: Las clasificaciones incluyen nivel de confianza
 
 ### Características Eliminadas
 - ❌ Dashboard web complejo
