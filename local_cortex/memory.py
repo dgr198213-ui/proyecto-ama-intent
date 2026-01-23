@@ -17,6 +17,7 @@ IS_SERVERLESS = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"
 
 # Initialize Supabase client if configured
 supabase_client = None
+_use_supabase_actual = USE_SUPABASE  # Track actual state separately
 if USE_SUPABASE and SUPABASE_URL and SUPABASE_KEY:
     try:
         from supabase import create_client, Client
@@ -24,14 +25,21 @@ if USE_SUPABASE and SUPABASE_URL and SUPABASE_KEY:
         logger.info("✅ Supabase client initialized successfully")
     except Exception as e:
         logger.error(f"❌ Failed to initialize Supabase client: {e}")
-        USE_SUPABASE = False
+        logger.warning("⚠️ Falling back to SQLite storage")
+        _use_supabase_actual = False
+
+
+def _is_using_supabase() -> bool:
+    """Check if Supabase is actually being used (not just configured)."""
+    return _use_supabase_actual and supabase_client is not None
+
 
 # SQLite configuration (fallback or local development)
-if IS_SERVERLESS and not USE_SUPABASE:
+if IS_SERVERLESS and not _use_supabase_actual:
     # Use /tmp directory for serverless (ephemeral storage)
     DB_PATH = "/tmp/ama_memory.db"
     logger.info("ℹ️ Using ephemeral SQLite storage in /tmp (serverless mode)")
-elif not USE_SUPABASE:
+elif not _use_supabase_actual:
     # Use data directory for normal deployments
     DB_PATH = "data/ama_memory.db"
     # Ensure the data directory exists
@@ -47,15 +55,16 @@ def check_database_connection() -> Dict[str, Any]:
     Check database connection health.
     Returns status information about the database connection.
     """
+    using_supabase = _is_using_supabase()
     result = {
-        "type": "supabase" if USE_SUPABASE else "sqlite",
+        "type": "supabase" if using_supabase else "sqlite",
         "connected": False,
         "message": "",
-        "url": SUPABASE_URL if USE_SUPABASE else DB_PATH
+        "url": SUPABASE_URL if using_supabase else DB_PATH
     }
     
     try:
-        if USE_SUPABASE and supabase_client:
+        if using_supabase:
             # Test Supabase connection by querying the table
             response = supabase_client.table("interactions").select("id").limit(1).execute()
             result["connected"] = True
@@ -82,9 +91,19 @@ def check_database_connection() -> Dict[str, Any]:
 
 @contextmanager
 def get_db_connection():
-    """Context manager for SQLite database connections."""
-    if USE_SUPABASE:
-        raise RuntimeError("SQLite connection requested but Supabase is enabled. Use supabase_client instead.")
+    """
+    Context manager for SQLite database connections.
+    
+    Raises:
+        RuntimeError: If Supabase is enabled. When using Supabase, access the database
+                     through the module-level `supabase_client` object and its table() methods.
+    """
+    if _is_using_supabase():
+        raise RuntimeError(
+            "SQLite connection requested but Supabase is enabled. "
+            "Use the module-level 'supabase_client' object instead. "
+            "Example: supabase_client.table('interactions').select('*').execute()"
+        )
     
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -99,7 +118,7 @@ def get_db_connection():
 
 def init_db():
     """Initialize database schema."""
-    if USE_SUPABASE and supabase_client:
+    if _is_using_supabase():
         # Supabase table should be created via SQL migration
         # Check if table exists and is accessible
         try:
@@ -142,7 +161,7 @@ def save_thought(user_input: str, output: str, intent: str):
     """Save a thought/interaction to the database."""
     timestamp = datetime.now().isoformat()
     
-    if USE_SUPABASE and supabase_client:
+    if _is_using_supabase():
         try:
             supabase_client.table("interactions").insert({
                 "timestamp": timestamp,
@@ -162,7 +181,7 @@ def save_thought(user_input: str, output: str, intent: str):
 
 def get_last_thoughts(limit: int = 3) -> str:
     """Get the last N thoughts as formatted context string."""
-    if USE_SUPABASE and supabase_client:
+    if _is_using_supabase():
         try:
             response = supabase_client.table("interactions")\
                 .select("input, output")\
@@ -184,7 +203,7 @@ def get_last_thoughts(limit: int = 3) -> str:
 
 def search_thoughts(query: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Search thoughts by keyword in input or output."""
-    if USE_SUPABASE and supabase_client:
+    if _is_using_supabase():
         try:
             # Use Supabase full-text search or ILIKE
             response = supabase_client.table("interactions")\
@@ -212,7 +231,7 @@ def search_thoughts(query: str, limit: int = 10) -> List[Dict[str, Any]]:
 
 def get_memory_stats() -> Dict[str, Any]:
     """Get statistics about the memory database."""
-    if USE_SUPABASE and supabase_client:
+    if _is_using_supabase():
         try:
             # Get total count
             total_response = supabase_client.table("interactions")\
@@ -220,9 +239,18 @@ def get_memory_stats() -> Dict[str, Any]:
                 .execute()
             total_count = total_response.count or 0
             
-            # Get counts by intent
-            intent_response = supabase_client.rpc("get_intent_counts").execute()
-            by_intent = {r["intent"]: r["count"] for r in (intent_response.data or [])}
+            # Get counts by intent - try RPC function first, fallback to direct query
+            try:
+                intent_response = supabase_client.rpc("get_intent_counts").execute()
+                by_intent = {r["intent"]: r["count"] for r in (intent_response.data or [])}
+            except Exception as rpc_error:
+                logger.warning(f"RPC function 'get_intent_counts' not available, using fallback: {rpc_error}")
+                # Fallback: get all intents and count manually (less efficient but works)
+                intent_response = supabase_client.table("interactions")\
+                    .select("intent")\
+                    .execute()
+                from collections import Counter
+                by_intent = dict(Counter(r["intent"] for r in intent_response.data if r.get("intent")))
             
             # Get date range
             date_response = supabase_client.table("interactions")\
@@ -277,7 +305,7 @@ def cleanup_old_thoughts(days: int = 30) -> int:
     """Archive or delete thoughts older than specified days."""
     cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
     
-    if USE_SUPABASE and supabase_client:
+    if _is_using_supabase():
         try:
             # Get count first
             count_response = supabase_client.table("interactions")\
@@ -310,7 +338,7 @@ def cleanup_old_thoughts(days: int = 30) -> int:
 
 def get_thoughts_by_intent(intent: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Retrieve thoughts filtered by intent type."""
-    if USE_SUPABASE and supabase_client:
+    if _is_using_supabase():
         try:
             response = supabase_client.table("interactions")\
                 .select("timestamp, input, output")\
