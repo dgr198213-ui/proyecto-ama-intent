@@ -9,7 +9,6 @@ import shutil
 import sqlite3
 import sys
 import tempfile
-from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
