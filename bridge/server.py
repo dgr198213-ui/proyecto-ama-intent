@@ -40,7 +40,7 @@ async def synapse(req):
         user_input = form.get("input", "")
 
         if not user_input:
-            return JSONResponse({"error": "Cortex recibió señal vacía"}, status_code=400)
+            return {"error": "Cortex recibió señal vacía", "status": "error"}
 
         # Get context limit from environment
         context_limit = int(os.getenv("MEMORY_CONTEXT_LIMIT", "5"))
@@ -68,7 +68,7 @@ async def synapse(req):
         }
     except Exception as e:
         logger.error(f"Error processing request: {e}")
-        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
+        return {"error": str(e), "status": "error"}
 
 
 @rt("/api/memory/search")
@@ -79,7 +79,7 @@ async def memory_search(req):
         limit = int(req.query_params.get("limit", "10"))
         
         if not query:
-            return JSONResponse({"error": "Query parameter 'q' is required"}, status_code=400)
+            return {"error": "Query parameter 'q' is required", "status": "error"}
         
         results = search_thoughts(query, limit)
         return {
@@ -90,7 +90,7 @@ async def memory_search(req):
         }
     except Exception as e:
         logger.error(f"Error searching memory: {e}")
-        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
+        return {"error": str(e), "status": "error"}
 
 
 @rt("/api/memory/stats")
@@ -104,7 +104,7 @@ async def memory_stats():
         }
     except Exception as e:
         logger.error(f"Error retrieving stats: {e}")
-        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
+        return {"error": str(e), "status": "error"}
 
 
 @rt("/api/memory/cleanup", methods=["POST"])
@@ -122,14 +122,15 @@ async def memory_cleanup(req):
         }
     except Exception as e:
         logger.error(f"Error cleaning up memory: {e}")
-        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
+        return {"error": str(e), "status": "error"}
 
 
 @rt("/api/memory/by-intent/{intent}")
-async def memory_by_intent(intent: str):
+async def memory_by_intent(intent: str, req):
     """Get memories filtered by intent."""
     try:
-        limit = 10
+        # Make limit configurable via query parameter
+        limit = int(req.query_params.get("limit", "10"))
         results = get_thoughts_by_intent(intent.upper(), limit)
         return {
             "status": "success",
@@ -139,7 +140,7 @@ async def memory_by_intent(intent: str):
         }
     except Exception as e:
         logger.error(f"Error retrieving memories by intent: {e}")
-        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
+        return {"error": str(e), "status": "error"}
 
 
 @rt("/admin")

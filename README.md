@@ -160,6 +160,7 @@ Obtiene pensamientos filtrados por tipo de intención.
 
 **Parámetros:**
 - `intent` (string): CHAT, CODIGO, o ANALISIS
+- `limit` (int, opcional): Número máximo de resultados (default: 10)
 
 **Respuesta:**
 ```json
@@ -206,7 +207,6 @@ RELOAD=false        # Auto-reload (dev only)
 
 # Ollama Configuration
 OLLAMA_MODEL=llama3.1  # LLM model to use
-OLLAMA_TIMEOUT=120     # Timeout for Ollama requests in seconds
 
 # Memory Configuration
 MEMORY_CONTEXT_LIMIT=5     # Number of recent thoughts to use as context

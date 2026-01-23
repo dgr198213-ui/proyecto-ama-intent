@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 class LocalBrain:
     def __init__(self, model=None):
         self.model = model or os.getenv("OLLAMA_MODEL", "llama3.1")
-        self.timeout = int(os.getenv("OLLAMA_TIMEOUT", "120"))
         self.system_prompt = """
         Eres AMA-Intent v3. Eres un sistema de inteligencia biomimética local.
         Tu "cuerpo" es este servidor local. Tu "mente" es Qodeia.com.
