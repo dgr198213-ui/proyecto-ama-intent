@@ -9,22 +9,24 @@ init_db()
 brain = LocalBrain()
 app, rt = fast_app()
 
+
 @rt("/")
 def get():
     return Titled("AMA-Intent v3 (Local Brain)",
-        Div(
-            H1("🧠 Sistema Biomimético: OPERATIVO"),
-            P("Conectado a puerto 5001. Esperando señal de Qodeia.com..."),
-            Div(id="logs", style="background: #111; color: #0f0; padding: 10px; font-family: monospace;")
-        )
-    )
+                  Div(
+                      H1("🧠 Sistema Biomimético: OPERATIVO"),
+                      P("Conectado a puerto 5001. Esperando señal de Qodeia.com..."),
+                      Div(id="logs", style="background: #111; color: #0f0; padding: 10px; font-family: monospace;")
+                  )
+                  )
+
 
 @rt("/api/synapse", methods=["POST"])
 async def synapse(req):
     """Endpoint principal que recibe datos de tu web."""
     form = await req.form()
     user_input = form.get("input", "")
-    
+
     if not user_input:
         return {"error": "Cortex recibió señal vacía"}
 

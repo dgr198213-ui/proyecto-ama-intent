@@ -1,5 +1,6 @@
 import ollama
 
+
 class LocalBrain:
     def __init__(self, model="llama3.1"):
         self.model = model
@@ -13,12 +14,12 @@ class LocalBrain:
     def think(self, user_input, context=""):
         """Procesa el input del usuario usando el modelo local."""
         print(f"⚡ [Cortex] Procesando: {user_input[:40]}...")
-        
+
         messages = [
             {'role': 'system', 'content': self.system_prompt},
             {'role': 'user', 'content': f"Contexto previo: {context}\n\nPregunta: {user_input}"}
         ]
-        
+
         response = ollama.chat(model=self.model, messages=messages)
         return response['message']['content']
 

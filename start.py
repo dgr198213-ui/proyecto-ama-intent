@@ -1,9 +1,10 @@
 import os
 import sys
 
+
 def main():
     print("🧠 Iniciando Protocolo AMA-Intent v3...")
-    
+
     # Verificar que existe la carpeta data
     if not os.path.exists("data"):
         os.makedirs("data")
@@ -19,6 +20,7 @@ def main():
     # Lanzar puente
     print("🚀 Levantando el puente neuronal en puerto 5001...")
     os.system("python bridge/server.py")
+
 
 if __name__ == "__main__":
     main()

@@ -1,8 +1,8 @@
 import sqlite3
-import json
 from datetime import datetime
 
 DB_PATH = "data/ama_memory.db"
+
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -12,6 +12,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 def save_thought(user_input, output, intent):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -20,6 +21,7 @@ def save_thought(user_input, output, intent):
               (timestamp, user_input, output, intent))
     conn.commit()
     conn.close()
+
 
 def get_last_thoughts(limit=3):
     conn = sqlite3.connect(DB_PATH)
