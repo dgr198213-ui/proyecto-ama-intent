@@ -21,7 +21,10 @@
     "HOST": "0.0.0.0",
     "PORT": "5001",
     "LOG_LEVEL": "INFO",
-    "OLLAMA_MODEL": "llama3.1"
+    "OLLAMA_MODEL": "llama3.1",
+    "AMA_SHARED_SECRET": "SET_IN_VERCEL_PROJECT_SETTINGS",
+    "OLLAMA_BASE_URL": "SET_IN_VERCEL_PROJECT_SETTINGS",
+    "FERNET_KEY": "OPTIONAL_SET_IN_VERCEL_PROJECT_SETTINGS"
   },
   "build": {
     "env": {
