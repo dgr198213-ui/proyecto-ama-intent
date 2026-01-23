@@ -89,8 +89,7 @@ class TestAMAv3:
 
     def test_memory_save_and_retrieve(self):
         """Test saving and retrieving thoughts"""
-        from local_cortex.memory import (get_last_thoughts, init_db,
-                                         save_thought)
+        from local_cortex.memory import get_last_thoughts, init_db, save_thought
 
         init_db()
 
@@ -109,8 +108,7 @@ class TestAMAv3:
 
     def test_memory_limit(self):
         """Test thought retrieval limit"""
-        from local_cortex.memory import (get_last_thoughts, init_db,
-                                         save_thought)
+        from local_cortex.memory import get_last_thoughts, init_db, save_thought
 
         init_db()
 
@@ -194,8 +192,7 @@ class TestAMAv3:
 
     def test_memory_by_intent(self):
         """Test filtering thoughts by intent"""
-        from local_cortex.memory import (get_thoughts_by_intent, init_db,
-                                         save_thought)
+        from local_cortex.memory import get_thoughts_by_intent, init_db, save_thought
 
         init_db()
 

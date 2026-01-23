@@ -7,9 +7,15 @@ from cryptography.fernet import Fernet, InvalidToken
 from dotenv import find_dotenv, load_dotenv, set_key
 from fasthtml.common import *
 
-from local_cortex.memory import (cleanup_old_thoughts, get_last_thoughts,
-                                 get_memory_stats, get_thoughts_by_intent,
-                                 init_db, save_thought, search_thoughts)
+from local_cortex.memory import (
+    cleanup_old_thoughts,
+    get_last_thoughts,
+    get_memory_stats,
+    get_thoughts_by_intent,
+    init_db,
+    save_thought,
+    search_thoughts,
+)
 from local_cortex.thought import LocalBrain
 
 # Configure logging
