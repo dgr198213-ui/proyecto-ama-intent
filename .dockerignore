@@ -35,6 +35,7 @@ ENV/
 # Documentation
 *.md
 !README.md
+!VERCEL_DEPLOYMENT.md
 docs/
 
 # CI/CD
