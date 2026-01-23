@@ -8,8 +8,9 @@ The import from bridge.server initializes the database and creates
 the LocalBrain instance as side effects, which is required for the
 application to function properly.
 """
+
 from bridge.server import app
 
 # Export the ASGI application for Vercel
 # The app variable is now available at module level for Vercel to discover
-__all__ = ['app']
+__all__ = ["app"]
