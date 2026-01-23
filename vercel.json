@@ -11,10 +11,5 @@
       "src": "/(.*)",
       "dest": "asgi.py"
     }
-  ],
-  "env": {
-    "HOST": "0.0.0.0",
-    "PORT": "8000",
-    "RELOAD": "false"
-  }
+  ]
 }
