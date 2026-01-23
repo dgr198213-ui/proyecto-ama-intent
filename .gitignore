@@ -1,21 +1,6 @@
-
-# Python cache
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# Virtual environments
-venv/
-env/
-ENV/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Data directories
-data/
+*.pyc
 .env
+.DS_Store
+data/*.db
+venv/

@@ -1,1 +1,0 @@
-Este directorio contendrá los manuales de instalación y guías de empaquetado.

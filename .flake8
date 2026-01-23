@@ -1,0 +1,6 @@
+[flake8]
+max-line-length = 127
+max-complexity = 10
+# Ignore star imports for FastHTML (common pattern in the framework)
+per-file-ignores =
+    bridge/server.py:F403,F405
