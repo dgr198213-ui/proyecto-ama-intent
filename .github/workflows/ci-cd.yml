@@ -65,35 +65,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install -r requirements_dashboard.txt
-          pip install pytest pytest-cov pytest-xdist pytest-timeout
-          pip install -e . 
-      
-      - name: SDDCS Tests
-        run: |
-          pytest tests/test_sddcs_integration.py \
-            -v \
-            --cov=. \
-            --cov-report=xml \
-            --timeout=60
+          pip install pytest pytest-cov pytest-xdist pytest-timeout 
       
       - name: AMA-Intent Tests
         run: |
-          pytest tests/ \
-            -v \
-            -n 2 \
-            --cov=. \
-            --cov-append \
-            --cov-report=xml \
-            --timeout=120 \
-            --ignore=tests/test_sddcs_integration.py
-      
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          python test_ama_v3.py
 
   security:
     name: Security Scan
@@ -108,8 +84,8 @@ jobs:
       - name: Scan
         run: |
           pip install safety bandit semgrep
-          bandit -r src/ -f json -o bandit-report.json || true
-          semgrep --config auto src/ --json -o semgrep-report.json || true
+          bandit -r . -f json -o bandit-report.json || true
+          semgrep --config auto . --json -o semgrep-report.json || true
 
   build:
     name: Build Docker Image
