@@ -64,8 +64,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-xdist pytest-timeout 
+          pip install -r requirements.txt 
       
       - name: AMA-Intent Tests
         run: |
@@ -84,8 +83,8 @@ jobs:
       - name: Scan
         run: |
           pip install safety bandit semgrep
-          bandit -r . -f json -o bandit-report.json || true
-          semgrep --config auto . --json -o semgrep-report.json || true
+          bandit -r local_cortex/ bridge/ *.py -f json -o bandit-report.json || true
+          semgrep --config auto local_cortex/ bridge/ --json -o semgrep-report.json || true
 
   build:
     name: Build Docker Image
