@@ -4,3 +4,22 @@ __pycache__/
 .DS_Store
 data/*.db
 venv/
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+*.so
+*.o
+
+# Deployment
+.vercel
+*.log
+logs/
+backups/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
