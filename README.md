@@ -74,9 +74,42 @@ Abre tu navegador en: http://localhost:5001
 
 Para ver estadísticas y gestionar el sistema: http://localhost:5001/admin
 
+### Panel de Gestión
+
+Para gestionar credenciales: http://localhost:5001/credenciales
+
 ### API Endpoints
 
-**POST** `/api/synapse`
+**GET** `/api/health` (Nuevo en v3.2)
+
+Endpoint de health check con autenticación.
+
+**Headers requeridos:**
+- `X-AMA-Secret`: El secreto compartido configurado en `AMA_SHARED_SECRET`
+
+**Respuesta:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-23T20:35:16.064640",
+  "memory_stats": {
+    "total_interactions": 0,
+    "by_intent": {},
+    "first_interaction": null,
+    "last_interaction": null
+  },
+  "security_warnings": [
+    "ℹ️ FERNET_KEY no configurado (opcional)"
+  ]
+}
+```
+
+**POST** `/api/synapse` (Requiere autenticación en v3.2)
+
+Endpoint principal que procesa solicitudes.
+
+**Headers requeridos:**
+- `X-AMA-Secret`: El secreto compartido configurado en `AMA_SHARED_SECRET`
 
 **Parámetros:**
 - `input` (string): El texto a procesar
@@ -205,6 +238,10 @@ HOST=127.0.0.1      # Server binding (localhost for security)
 PORT=5001           # Server port
 RELOAD=false        # Auto-reload (dev only)
 
+# Security Configuration (Doctrina Howard) - NEW in v3.2
+AMA_SHARED_SECRET=change-this-secret-in-production  # Shared secret for bridge authentication
+FERNET_KEY=         # Optional: Leave empty to auto-generate, or provide a valid Fernet key
+
 # Ollama Configuration
 OLLAMA_MODEL=llama3.1  # LLM model to use
 
@@ -216,6 +253,17 @@ MEMORY_ARCHIVE_DAYS=30     # Archive thoughts older than N days
 # Logging Configuration
 LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 ```
+
+### 🔐 Gestión de Credenciales (v3.2)
+
+AMA-Intent v3.2 incluye un panel web para gestionar credenciales de forma segura:
+
+1. **Acceder al Panel**: Navega a `http://localhost:5001/credenciales`
+2. **Editar Claves**: Modifica `AMA_SHARED_SECRET`, `FERNET_KEY`, u `OLLAMA_MODEL`
+3. **Hot Reload**: Los cambios se aplican inmediatamente sin reiniciar el servidor
+4. **Validación**: El sistema valida automáticamente el formato de las claves
+
+**Nota de Seguridad**: El panel está diseñado para entornos locales protegidos. Configura adecuadamente `AMA_SHARED_SECRET` en producción.
 
 ## 📊 Base de Datos
 
@@ -297,6 +345,15 @@ Esta suite verifica:
 - ✅ **Panel de admin**: Interfaz web para monitoreo del sistema
 - ✅ **Mejor manejo de errores**: Códigos HTTP apropiados y logging
 - ✅ **Confidence scoring**: Las clasificaciones incluyen nivel de confianza
+
+### Nuevas Características en v3.2 - Doctrina Howard (Producción)
+- ✅ **Panel de Gestión de Credenciales**: Interfaz minimalista en `/credenciales` para editar claves críticas
+- ✅ **Hot Reload de Configuración**: Recarga inmediata de variables .env sin reiniciar el servidor
+- ✅ **Blindaje del Túnel Seguro**: Validación de secreto compartido (`AMA_SHARED_SECRET`) en endpoints críticos
+- ✅ **Health Check Seguro**: Endpoint `/api/health` con autenticación para monitoreo
+- ✅ **Validación de Credenciales**: Verificación automática de formato de claves (Fernet)
+- ✅ **Dashboard con Advertencias**: Panel de admin muestra alertas de seguridad en tiempo real
+- ✅ **Sin Frameworks Adicionales**: Implementación pura con FastHTML, sin dependencias extras
 
 ### Características Eliminadas
 - ❌ Dashboard web complejo
