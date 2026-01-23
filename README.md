@@ -364,6 +364,28 @@ Esta suite verifica:
 
 Ver `REFACTORING_SUMMARY.md` para detalles completos.
 
+## 🚀 Despliegue en Vercel
+
+AMA-Intent v3.2 incluye soporte para despliegue en plataformas serverless como Vercel:
+
+### Archivos de Despliegue
+
+- **asgi.py**: Punto de entrada ASGI para despliegue serverless
+- **vercel.json**: Configuración de Vercel para el despliegue
+
+### Configuración para Vercel
+
+1. **Crea una cuenta en Vercel** (si no tienes una)
+2. **Conecta tu repositorio** a Vercel
+3. **Configura las variables de entorno** en el dashboard de Vercel:
+   - `AMA_SHARED_SECRET`: Tu secreto compartido
+   - `FERNET_KEY`: Clave de encriptación (opcional)
+   - `OLLAMA_MODEL`: Modelo a utilizar (default: llama3.1)
+   
+4. **Despliega**: Vercel detectará automáticamente la configuración
+
+**Nota**: Para usar Ollama en Vercel, necesitarás configurar un endpoint externo de Ollama accesible desde internet, ya que Vercel no permite procesos persistentes.
+
 ## 🎯 Próximos Pasos
 
 - Integración con interfaces web externas

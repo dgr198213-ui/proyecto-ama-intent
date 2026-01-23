@@ -1,5 +1,56 @@
 # 📝 Changelog - AMA-Intent v3
 
+## [v3.2.0] - 2026-01-23
+
+### 🎉 Major Enhancements - Doctrina Howard (Production-Ready)
+
+#### Security & Authentication
+- **Secure Health Checks**: Added `/api/health` endpoint with shared secret authentication
+- **Request Authentication**: All critical endpoints now require `X-AMA-Secret` header validation
+- **Security Warnings System**: Real-time security status monitoring in admin dashboard
+- **Credential Validation**: Automatic validation of Fernet keys and shared secrets
+
+#### Credentials Management
+- **Web Panel**: Minimalist credentials management interface at `/credenciales`
+- **Hot Reload**: Immediate application of configuration changes without server restart
+- **Secure Display**: Password masking for sensitive credentials
+- **Validation Feedback**: Real-time validation of credential formats
+
+#### Deployment Support
+- **ASGI Entrypoint**: Added `asgi.py` for serverless deployment on Vercel
+- **Vercel Configuration**: Included `vercel.json` with optimized settings
+- **Production-Ready**: Secure defaults for production deployments
+
+#### Improved Error Handling
+- **Structured Logging**: Enhanced logging with configurable levels
+- **HTTP Status Codes**: Proper error responses (401, 500) for different failure types
+- **Detailed Error Messages**: Clear error descriptions for debugging
+
+### 📊 Statistics
+
+| Metric | v3.1 | v3.2 |
+|--------|------|------|
+| **API Endpoints** | 6 | 8 |
+| **Security Features** | Basic | Production-Grade |
+| **Deployment Options** | Local Only | Local + Serverless |
+| **Configuration Management** | Manual | Web UI + Hot Reload |
+
+### 🔧 Technical Improvements
+
+- Added `validate_shared_secret()` for request authentication
+- Added `validate_fernet_key()` for credential validation
+- Added `reload_env()` for hot configuration reloading
+- Added `get_security_warnings()` for security status monitoring
+- Created deployment-ready ASGI application structure
+
+### 📝 Documentation Updates
+
+- Added Vercel deployment section to README
+- Updated API documentation with authentication requirements
+- Enhanced security configuration documentation
+
+---
+
 ## [v3.1.0] - 2026-01-23
 
 ### 🎉 Major Enhancements
