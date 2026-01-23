@@ -1,4 +1,9 @@
 import ollama
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
 
 
 class LocalBrain:
@@ -13,7 +18,7 @@ class LocalBrain:
 
     def think(self, user_input, context=""):
         """Procesa el input del usuario usando el modelo local."""
-        print(f"⚡ [Cortex] Procesando: {user_input[:40]}...")
+        logger.info(f"⚡ [Cortex] Procesando: {user_input[:40]}...")
 
         messages = [
             {'role': 'system', 'content': self.system_prompt},

@@ -3,6 +3,7 @@ from local_cortex.thought import LocalBrain
 from local_cortex.memory import init_db, save_thought, get_last_thoughts
 from datetime import datetime
 import uvicorn
+import os
 
 # Inicialización del sistema
 init_db()
@@ -48,5 +49,11 @@ async def synapse(req):
         "timestamp": datetime.now().isoformat()
     }
 
+
 if __name__ == "__main__":
-    uvicorn.run("bridge.server:app", host="0.0.0.0", port=5001, reload=True)
+    # Get configuration from environment variables with secure defaults
+    host = os.getenv("HOST", "127.0.0.1")  # Default to localhost for security
+    port = int(os.getenv("PORT", "5001"))
+    reload = os.getenv("RELOAD", "false").lower() == "true"  # Default to false for production
+
+    uvicorn.run("bridge.server:app", host=host, port=port, reload=reload)

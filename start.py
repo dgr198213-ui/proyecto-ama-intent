@@ -1,5 +1,6 @@
 import os
 import sys
+import subprocess
 
 
 def main():
@@ -11,15 +12,26 @@ def main():
         print("📁 Carpeta de memoria creada.")
 
     # Verificar Ollama (solución pragmática)
-    res = os.system("ollama list > /dev/null 2>&1")
-    if res != 0:
-        print("❌ ERROR: Ollama no parece estar instalado o corriendo.")
-        print("👉 Ejecuta 'ollama serve' en otra terminal.")
+    try:
+        result = subprocess.run(["ollama", "list"], capture_output=True, text=True, check=False)
+        if result.returncode != 0:
+            print("❌ ERROR: Ollama no parece estar instalado o corriendo.")
+            print("👉 Ejecuta 'ollama serve' en otra terminal.")
+            sys.exit(1)
+    except FileNotFoundError:
+        print("❌ ERROR: Ollama no está instalado.")
+        print("👉 Instala Ollama desde https://ollama.ai")
         sys.exit(1)
 
     # Lanzar puente
     print("🚀 Levantando el puente neuronal en puerto 5001...")
-    os.system("python bridge/server.py")
+    try:
+        subprocess.run([sys.executable, "-m", "bridge.server"], check=True)
+    except KeyboardInterrupt:
+        print("\n✅ Sistema detenido correctamente.")
+    except Exception as e:
+        print(f"❌ Error al iniciar el servidor: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
