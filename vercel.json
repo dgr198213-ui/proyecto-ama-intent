@@ -20,7 +20,10 @@
     "HOST": "0.0.0.0",
     "PORT": "5001",
     "LOG_LEVEL": "INFO",
-    "OLLAMA_MODEL": "llama3.1"
+    "OLLAMA_MODEL": "llama3.1",
+    "USE_SUPABASE": "true",
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_KEY": "@supabase_key"
   },
   "build": {
     "env": {
