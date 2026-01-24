@@ -3,13 +3,13 @@ name = "proyecto-ama-intent"
 version = "3.2.0"
 description = "Sistema de Cerebro Artificial Biomimético con gobernanza AMA-G"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    "python-fasthtml",
-    "ollama",
-    "python-dotenv",
-    "uvicorn",
-    "cryptography"
+  "python-fasthtml",
+  "ollama",
+  "python-dotenv",
+  "uvicorn",
+  "cryptography"
 ]
 
 [build-system]
@@ -18,7 +18,7 @@ build-backend = "hatchling.build"
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ["py310"]
 
 [tool.isort]
 profile = "black"
