@@ -30,6 +30,8 @@
                     │        FastHTML Application               │
                     │                                           │
                     │  GET  / ────────► Web Interface           │
+                    │  GET  /admin ───► Admin Dashboard         │
+                    │  GET  /credenciales ► Credentials Panel   │
                     │                                           │
                     │  POST /api/synapse ─► Process Request     │
                     │                                           │

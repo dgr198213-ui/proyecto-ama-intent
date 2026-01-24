@@ -63,10 +63,10 @@ def init_db():
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""CREATE TABLE IF NOT EXISTS interactions
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                      timestamp TEXT NOT NULL, 
-                      input TEXT NOT NULL, 
-                      output TEXT NOT NULL, 
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      timestamp TEXT NOT NULL,
+                      input TEXT NOT NULL,
+                      output TEXT NOT NULL,
                       intent TEXT)""")
         # Create indexes for better performance
         c.execute(
@@ -107,8 +107,8 @@ def search_thoughts(query: str, limit: int = 10) -> List[Dict[str, Any]]:
         c = conn.cursor()
         search_pattern = f"%{query}%"
         c.execute(
-            """SELECT timestamp, input, output, intent 
-                     FROM interactions 
+            """SELECT timestamp, input, output, intent
+                     FROM interactions
                      WHERE input LIKE ? OR output LIKE ?
                      ORDER BY id DESC LIMIT ?""",
             (search_pattern, search_pattern, limit),
@@ -161,8 +161,8 @@ def get_thoughts_by_intent(intent: str, limit: int = 10) -> List[Dict[str, Any]]
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute(
-            """SELECT timestamp, input, output 
-                     FROM interactions 
+            """SELECT timestamp, input, output
+                     FROM interactions
                      WHERE intent = ?
                      ORDER BY id DESC LIMIT ?""",
             (intent, limit),
