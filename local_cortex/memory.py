@@ -79,7 +79,7 @@ def init_db():
 def save_thought(user_input: str, output: str, intent: str):
     """Save a thought/interaction to the database."""
     timestamp = datetime.now().isoformat()
-    
+
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute(
@@ -115,8 +115,7 @@ def search_thoughts(query: str, limit: int = 10) -> List[Dict[str, Any]]:
         )
         rows = c.fetchall()
     return [
-        {"timestamp": r[0], "input": r[1], "output": r[2], "intent": r[3]}
-        for r in rows
+        {"timestamp": r[0], "input": r[1], "output": r[2], "intent": r[3]} for r in rows
     ]
 
 
@@ -144,7 +143,7 @@ def get_memory_stats() -> Dict[str, Any]:
 def cleanup_old_thoughts(days: int = 30) -> int:
     """Archive or delete thoughts older than specified days."""
     cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
-    
+
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute(
@@ -153,9 +152,7 @@ def cleanup_old_thoughts(days: int = 30) -> int:
         count = c.fetchone()[0]
 
         if count > 0:
-            c.execute(
-                "DELETE FROM interactions WHERE timestamp < ?", (cutoff_date,)
-            )
+            c.execute("DELETE FROM interactions WHERE timestamp < ?", (cutoff_date,))
     return count
 
 
