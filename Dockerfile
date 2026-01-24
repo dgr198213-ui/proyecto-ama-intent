@@ -40,4 +40,4 @@ ENV LOG_LEVEL=INFO
 # Example: OLLAMA_BASE_URL=http://host.docker.internal:11434
 
 # Run the application
-CMD ["python", "-m", "bridge.server"]
+CMD ["uvicorn", "bridge.server:app", "--host", "0.0.0.0", "--port", "5001"]
