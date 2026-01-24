@@ -3,3 +3,5 @@ ollama
 python-dotenv
 uvicorn
 cryptography
+supabase>=2.0.0
+postgrest>=0.10.0

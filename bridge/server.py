@@ -3,7 +3,7 @@ from local_cortex.thought import LocalBrain
 from local_cortex.memory import (
     init_db, save_thought, get_last_thoughts,
     search_thoughts, get_memory_stats, cleanup_old_thoughts,
-    get_thoughts_by_intent
+    get_thoughts_by_intent, check_database_connection
 )
 from datetime import datetime
 from dotenv import load_dotenv, set_key, find_dotenv
@@ -67,7 +67,12 @@ def get_security_warnings():
     return warnings
 
 # Inicialización del sistema
-init_db()
+try:
+    init_db()
+    logger.info("✅ Database initialized successfully")
+except Exception as e:
+    logger.warning(f"⚠️ Database initialization failed: {e}. Memory features may be limited.")
+
 brain = LocalBrain()
 app, rt = fast_app()
 
@@ -103,6 +108,29 @@ async def health(req):
     except Exception as e:
         logger.error(f"Error in health check: {e}")
         return {"error": str(e), "status": "error"}, 500
+
+
+@rt("/api/db/check")
+async def db_check():
+    """
+    Database connection check endpoint.
+    Tests connectivity to the configured database (Supabase or SQLite).
+    """
+    try:
+        db_status = check_database_connection()
+        
+        return {
+            "status": "success" if db_status["connected"] else "error",
+            "database": db_status,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error checking database connection: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }, 500
 
 
 @rt("/api/synapse", methods=["POST"])
@@ -368,6 +396,7 @@ def admin():
     try:
         stats = get_memory_stats()
         warnings = get_security_warnings()
+        db_status = check_database_connection()
         
         # Build warning display
         warning_elements = []
@@ -378,10 +407,22 @@ def admin():
         else:
             warning_elements.append(P("✅ No hay advertencias de seguridad", style="color: #059669;"))
         
+        # Build database status display
+        db_color = "#059669" if db_status["connected"] else "#dc2626"
+        db_bg = "#f0fdf4" if db_status["connected"] else "#fef2f2"
+        db_icon = "✅" if db_status["connected"] else "❌"
+        
         return Titled("AMA-Intent v3 - Admin Dashboard",
                       Div(
                           H1("🧠 Sistema de Administración"),
                           *warning_elements,
+                          H2("💾 Estado de la Base de Datos"),
+                          Div(
+                              P(f"{db_icon} Tipo: {db_status['type'].upper()}", style="margin: 5px 0;"),
+                              P(f"Conexión: {db_status['message']}", style="margin: 5px 0;"),
+                              P(f"URL: {db_status['url']}", style="margin: 5px 0; font-size: 0.9em; color: #6b7280;"),
+                              style=f"background: {db_bg}; color: {db_color}; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid {db_color};"
+                          ),
                           H2("📊 Estadísticas de Memoria"),
                           P(f"Total de interacciones: {stats['total_interactions']}"),
                           P(f"Por intención: {stats['by_intent']}"),
@@ -390,6 +431,7 @@ def admin():
                           H2("🔧 Endpoints API"),
                           Ul(
                               Li("GET /api/health - Health check con autenticación"),
+                              Li("GET /api/db/check - Verificar conexión a base de datos"),
                               Li("POST /api/synapse - Procesamiento principal (requiere secreto)"),
                               Li("GET /api/memory/search?q=query - Buscar en memoria"),
                               Li("GET /api/memory/stats - Estadísticas de memoria"),
