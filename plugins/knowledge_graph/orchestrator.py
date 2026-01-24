@@ -85,7 +85,9 @@ class KnowledgeGraphOrchestrator:
         if not force and self.last_build_time:
             hours_since = (datetime.now() - self.last_build_time).total_seconds() / 3600
             if hours_since < self.config.rebuild_interval_hours:
-                print(f"ℹ️  KG actualizado hace {hours_since:.1f}h, no requiere rebuild")
+                print(
+                    f"ℹ️  KG actualizado hace {hours_since:.1f}h, no requiere rebuild"
+                )
                 return
 
         print(f"📊 Construyendo Knowledge Graph en: {self.config.project_path}")
