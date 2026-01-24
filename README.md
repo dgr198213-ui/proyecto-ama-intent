@@ -125,9 +125,12 @@ Endpoint principal que procesa solicitudes.
 }
 ```
 
-**GET** `/api/memory/search?q={query}&limit={limit}`
+**GET** `/api/memory/search?q={query}&limit={limit}` (Requiere autenticación)
 
 Busca en la memoria del sistema.
+
+**Headers requeridos:**
+- `X-AMA-Secret`: El secreto compartido configurado en `AMA_SHARED_SECRET`
 
 **Parámetros:**
 - `q` (string): Término de búsqueda
@@ -150,9 +153,12 @@ Busca en la memoria del sistema.
 }
 ```
 
-**GET** `/api/memory/stats`
+**GET** `/api/memory/stats` (Requiere autenticación)
 
 Obtiene estadísticas de la memoria del sistema.
+
+**Headers requeridos:**
+- `X-AMA-Secret`: El secreto compartido configurado en `AMA_SHARED_SECRET`
 
 **Respuesta:**
 ```json
@@ -171,9 +177,12 @@ Obtiene estadísticas de la memoria del sistema.
 }
 ```
 
-**POST** `/api/memory/cleanup`
+**POST** `/api/memory/cleanup` (Requiere autenticación)
 
 Limpia pensamientos antiguos de la memoria.
+
+**Headers requeridos:**
+- `X-AMA-Secret`: El secreto compartido configurado en `AMA_SHARED_SECRET`
 
 **Parámetros:**
 - `days` (int, opcional): Días de antigüedad para limpiar (default: 30)
@@ -187,9 +196,12 @@ Limpia pensamientos antiguos de la memoria.
 }
 ```
 
-**GET** `/api/memory/by-intent/{intent}`
+**GET** `/api/memory/by-intent/{intent}` (Requiere autenticación)
 
 Obtiene pensamientos filtrados por tipo de intención.
+
+**Headers requeridos:**
+- `X-AMA-Secret`: El secreto compartido configurado en `AMA_SHARED_SECRET`
 
 **Parámetros:**
 - `intent` (string): CHAT, CODIGO, o ANALISIS

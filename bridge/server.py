@@ -1,9 +1,10 @@
 import logging
 import os
+import shutil
 from datetime import datetime
 
 import uvicorn
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet
 from dotenv import find_dotenv, load_dotenv, set_key
 from fasthtml.common import *
 
@@ -101,6 +102,12 @@ def get():
             H1("🧠 Sistema Biomimético: OPERATIVO"),
             P("Conectado a puerto 5001. Esperando señal de Qodeia.com..."),
             Div(
+                A("📊 Panel de Admin", href="/admin"),
+                " | ",
+                A("🔐 Gestionar Credenciales", href="/credenciales"),
+                style="margin-bottom: 20px;",
+            ),
+            Div(
                 id="logs",
                 style="background: #111; color: #0f0; padding: 10px; font-family: monospace;",
             ),
@@ -113,7 +120,7 @@ async def health(req):
     """Health check endpoint with shared secret validation."""
     if not validate_shared_secret(req):
         logger.warning("🚫 Unauthorized health check attempt")
-        return {"error": "Unauthorized", "status": "error"}, 401
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
 
     try:
         stats = get_memory_stats()
@@ -127,7 +134,7 @@ async def health(req):
         }
     except Exception as e:
         logger.error(f"Error in health check: {e}")
-        return {"error": str(e), "status": "error"}, 500
+        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
 
 
 @rt("/api/db/check")
@@ -162,15 +169,18 @@ async def db_check():
         if http_status == 200:
             return response
         else:
-            return response, http_status
+            return JSONResponse(response, status_code=http_status)
 
     except Exception as e:
         logger.error(f"Error checking database connection: {e}")
-        return {
-            "status": "error",
-            "message": "Internal error during database check",
-            "timestamp": datetime.now().isoformat(),
-        }, 500
+        return JSONResponse(
+            {
+                "status": "error",
+                "message": "Internal error during database check",
+                "timestamp": datetime.now().isoformat(),
+            },
+            status_code=500,
+        )
 
 
 @rt("/api/synapse", methods=["POST"])
@@ -179,7 +189,7 @@ async def synapse(req):
     # Validate shared secret for production security
     if not validate_shared_secret(req):
         logger.warning("🚫 Unauthorized synapse request")
-        return {"error": "Unauthorized", "status": "error"}, 401
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
 
     try:
         form = await req.form()
@@ -228,6 +238,10 @@ async def synapse(req):
 @rt("/api/memory/search")
 async def memory_search(req):
     """Search through stored memories."""
+    if not validate_shared_secret(req):
+        logger.warning("🚫 Unauthorized memory search attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
+
     try:
         query = req.query_params.get("q", "")
         limit = int(req.query_params.get("limit", "10"))
@@ -248,8 +262,12 @@ async def memory_search(req):
 
 
 @rt("/api/memory/stats")
-async def memory_stats():
+async def memory_stats(req):
     """Get memory statistics."""
+    if not validate_shared_secret(req):
+        logger.warning("🚫 Unauthorized memory stats attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
+
     try:
         stats = get_memory_stats()
         return {"status": "success", "stats": stats}
@@ -261,6 +279,10 @@ async def memory_stats():
 @rt("/api/memory/cleanup", methods=["POST"])
 async def memory_cleanup(req):
     """Cleanup old memories."""
+    if not validate_shared_secret(req):
+        logger.warning("🚫 Unauthorized memory cleanup attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
+
     try:
         form = await req.form()
         days = int(form.get("days", os.getenv("MEMORY_ARCHIVE_DAYS", "30")))
@@ -279,6 +301,10 @@ async def memory_cleanup(req):
 @rt("/api/memory/by-intent/{intent}")
 async def memory_by_intent(intent: str, req):
     """Get memories filtered by intent."""
+    if not validate_shared_secret(req):
+        logger.warning("🚫 Unauthorized memory by-intent attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
+
     try:
         # Make limit configurable via query parameter
         limit = int(req.query_params.get("limit", "10"))
@@ -291,7 +317,7 @@ async def memory_by_intent(intent: str, req):
         }
     except Exception as e:
         logger.error(f"Error retrieving memories by intent: {e}")
-        return {"error": str(e), "status": "error"}
+        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
 
 
 @rt("/credenciales")
@@ -398,7 +424,10 @@ def credenciales():
                     Button(
                         "💾 Guardar y Recargar",
                         type="submit",
-                        style="margin-top: 20px; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;",
+                        style=(
+                            "margin-top: 20px; padding: 10px 20px; background: #2563eb; "
+                            "color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;"
+                        ),
                     ),
                     action="/api/credenciales/save",
                     method="POST",
@@ -428,8 +457,6 @@ async def save_credenciales(req):
             # Create .env from .env.example if it doesn't exist
             env_example_path = env_path + ".example"
             if os.path.exists(env_example_path) and not os.path.exists(env_path):
-                import shutil
-
                 shutil.copy(env_example_path, env_path)
 
         updated_keys = []
@@ -498,7 +525,10 @@ async def save_credenciales(req):
                     A("Ver Admin", href="/admin"),
                     style="margin-top: 20px;",
                 ),
-                style="background: #f0fdf4; padding: 30px; border: 2px solid #059669; border-radius: 8px; max-width: 600px; margin: 50px auto;",
+                style=(
+                    "background: #f0fdf4; padding: 30px; border: 2px solid #059669; "
+                    "border-radius: 8px; max-width: 600px; margin: 50px auto;"
+                ),
             ),
         )
     except Exception as e:
@@ -579,7 +609,10 @@ def admin():
                 H2("💾 Estado de la Base de Datos"),
                 Div(
                     *db_details,
-                    style=f"background: {db_bg}; color: {db_color}; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid {db_color};",
+                    style=(
+                        f"background: {db_bg}; color: {db_color}; padding: 15px; "
+                        f"border-radius: 8px; margin: 15px 0; border: 2px solid {db_color};"
+                    ),
                 ),
                 H2("📊 Estadísticas de Memoria"),
                 P(f"Total de interacciones: {stats['total_interactions']}"),
