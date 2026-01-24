@@ -2,7 +2,7 @@
 
 ## 🎯 Propósito del Proyecto
 
-AMA-Intent v3 está diseñado para **ejecución local** usando Ollama con modelos de lenguaje locales. Este proyecto NO está diseñado para despliegue en servicios serverless como Vercel o AWS Lambda.
+AMA-Intent v3 está diseñado para **ejecución local** usando Ollama con modelos de lenguaje locales. Este proyecto NO está diseñado para despliegue en servicios serverless.
 
 ## ✅ Despliegue Local (Recomendado)
 
