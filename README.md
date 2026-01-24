@@ -63,20 +63,24 @@ python start.py
 
 El sistema:
 1. Verificará la carpeta `data/` (la creará si no existe)
-2. Verificará que Ollama está disponible
+2. Verificará que Ollama está disponible y que el modelo esté descargado
 3. Iniciará el servidor en puerto 5001
 
 ### Acceder a la Interfaz
 
 Abre tu navegador en: http://localhost:5001
 
+En la página principal encontrarás una **Consola de Prueba** para interactuar directamente con el cerebro local.
+
 ### Acceder al Panel de Administración
 
 Para ver estadísticas y gestionar el sistema: http://localhost:5001/admin
+(Requiere autenticación con `AMA_SHARED_SECRET`)
 
 ### Panel de Gestión
 
 Para gestionar credenciales: http://localhost:5001/credenciales
+(Requiere autenticación con `AMA_SHARED_SECRET`)
 
 ### API Endpoints
 
@@ -366,6 +370,14 @@ Esta suite verifica:
 - ✅ **Validación de Credenciales**: Verificación automática de formato de claves (Fernet)
 - ✅ **Dashboard con Advertencias**: Panel de admin muestra alertas de seguridad en tiempo real
 - ✅ **Sin Frameworks Adicionales**: Implementación pura con FastHTML, sin dependencias extras
+
+### Nuevas Características en v3.3 - Resiliencia y UX (Actual)
+- ✅ **Consola de Prueba Interactiva**: Probar el cerebro local directamente desde la home con HTMX
+- ✅ **Gestión de Memoria Automática**: El sistema ahora limpia automáticamente memorias antiguas al llegar al límite
+- ✅ **Seguridad Web Reforzada**: Paneles de administración protegidos por secreto compartido y sesiones
+- ✅ **Robustez de LLM**: Implementación de reintentos automáticos (retry logic) para llamadas a Ollama
+- ✅ **Verificación de Inicio Avanzada**: El launcher comprueba que el modelo LLM esté descargado antes de arrancar
+- ✅ **Logs en Tiempo Real**: Visualización de actividad del sistema directamente en la interfaz web
 
 ### Características Eliminadas
 - ❌ Dashboard web complejo

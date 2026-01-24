@@ -76,6 +76,25 @@ def init_db():
     logger.info("✅ SQLite database initialized")
 
 
+def enforce_memory_limit():
+    """Ensure the database does not exceed MEMORY_MAX_ENTRIES."""
+    max_entries = int(os.getenv("MEMORY_MAX_ENTRIES", "1000"))
+
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM interactions")
+        count = c.fetchone()[0]
+
+        if count > max_entries:
+            # Delete the oldest entries to stay within limit
+            to_delete = count - max_entries
+            c.execute(
+                "DELETE FROM interactions WHERE id IN (SELECT id FROM interactions ORDER BY id ASC LIMIT ?)",
+                (to_delete,),
+            )
+            logger.info(f"♻️ Memory limit reached. Removed {to_delete} oldest entries.")
+
+
 def save_thought(user_input: str, output: str, intent: str):
     """Save a thought/interaction to the database."""
     timestamp = datetime.now().isoformat()
@@ -86,6 +105,12 @@ def save_thought(user_input: str, output: str, intent: str):
             "INSERT INTO interactions (timestamp, input, output, intent) VALUES (?, ?, ?, ?)",
             (timestamp, user_input, output, intent),
         )
+
+    # Automatically enforce memory limits
+    try:
+        enforce_memory_limit()
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to enforce memory limit: {e}")
 
 
 def get_last_thoughts(limit: int = 3) -> str:

@@ -90,12 +90,52 @@ except Exception as e:
         f"⚠️ Database initialization failed: {e}. Memory features may be limited."
     )
 
+
+def auth_before(req, sess):
+    """Verifica autenticación para rutas protegidas."""
+    protected = ["/admin", "/credenciales", "/api/credenciales/save"]
+    if req.url.path in protected and not sess.get("auth"):
+        return RedirectResponse("/login")
+
+
 brain = LocalBrain()
-app, rt = fast_app()
+app, rt = fast_app(
+    before=auth_before,
+    secret_key=os.getenv("AMA_SHARED_SECRET", "secret-key-fallback"),
+)
+
+
+@rt("/login")
+def get_login():
+    return Titled(
+        "Acceso Protegido",
+        Form(
+            P("Introduce el secreto compartido para acceder:"),
+            Input(type="password", name="secret", placeholder="AMA_SHARED_SECRET"),
+            Button("Entrar"),
+            action="/login",
+            method="post",
+        ),
+    )
+
+
+@rt("/login", methods=["POST"])
+def post_login(secret: str, sess):
+    expected = os.getenv("AMA_SHARED_SECRET")
+    if expected and secret == expected:
+        sess["auth"] = True
+        return RedirectResponse("/admin")
+    return Titled("Error", P("Secreto incorrecto", style="color: red;"), A("Reintentar", href="/login"))
+
+
+@rt("/logout")
+def get_logout(sess):
+    sess.pop("auth", None)
+    return RedirectResponse("/")
 
 
 @rt("/")
-def get():
+def get_index():
     return Titled(
         "AMA-Intent v3 (Local Brain)",
         Div(
@@ -105,13 +145,79 @@ def get():
                 A("📊 Panel de Admin", href="/admin"),
                 " | ",
                 A("🔐 Gestionar Credenciales", href="/credenciales"),
+                " | ",
+                A("🚪 Cerrar Sesión", href="/logout"),
+                style="margin-bottom: 20px;",
+            ),
+            H2("🧪 Consola de Prueba (Synapse)"),
+            Form(
+                Input(
+                    type="text",
+                    name="input",
+                    placeholder="Escribe algo para el cerebro...",
+                    style="width: 70%; padding: 10px;",
+                ),
+                Button(
+                    "Enviar",
+                    style="padding: 10px 20px; background: #2563eb; color: white; border: none; cursor: pointer;",
+                ),
+                hx_post="/ui/test-synapse",
+                hx_target="#synapse-response",
                 style="margin-bottom: 20px;",
             ),
             Div(
+                id="synapse-response",
+                style="background: #f9fafb; padding: 15px; border: 1px solid #e5e7eb; border-radius: 4px; min-height: 50px;",
+            ),
+            H2("📜 Logs del Sistema"),
+            Div(
                 id="logs",
-                style="background: #111; color: #0f0; padding: 10px; font-family: monospace;",
+                style="background: #111; color: #0f0; padding: 10px; font-family: monospace; height: 200px; overflow-y: auto;",
+                hx_get="/ui/logs",
+                hx_trigger="every 2s",
             ),
         ),
+    )
+
+
+@rt("/ui/test-synapse", methods=["POST"])
+async def test_synapse(input: str):
+    """Endpoint de prueba para la UI que no requiere secreto (solo local)."""
+    if not input:
+        return P("Error: Input vacío", style="color: red;")
+
+    try:
+        # Usamos la lógica interna directamente
+        context_limit = int(os.getenv("MEMORY_CONTEXT_LIMIT", "5"))
+        context = get_last_thoughts(context_limit)
+
+        classification = brain.fast_classify(input)
+        intent = (
+            classification["intent"]
+            if isinstance(classification, dict)
+            else classification
+        )
+        response_text = brain.think(input, context)
+
+        save_thought(input, response_text, intent)
+
+        return Div(
+            P(Strong(f"Intento: {intent}")),
+            P(response_text),
+            style="border-left: 4px solid #2563eb; padding-left: 10px;",
+        )
+    except Exception as e:
+        return P(f"Error: {str(e)}", style="color: red;")
+
+
+@rt("/ui/logs")
+def get_logs():
+    """Simulación de logs recientes para la UI."""
+    # En un sistema real leeríamos un archivo de log, aquí damos info de estado
+    stats = get_memory_stats()
+    now = datetime.now().strftime("%H:%M:%S")
+    return P(
+        f"[{now}] System Healthy | Interactions: {stats['total_interactions']} | Last: {stats['last_interaction'] or 'None'}"
     )
 
 
@@ -433,7 +539,12 @@ def credenciales():
                     method="POST",
                     style="max-width: 600px;",
                 ),
-                P(A("← Volver al Admin", href="/admin"), style="margin-top: 30px;"),
+                P(
+                    A("← Volver al Admin", href="/admin"),
+                    " | ",
+                    A("🚪 Cerrar Sesión", href="/logout"),
+                    style="margin-top: 30px;",
+                ),
                 style="background: #ffffff; padding: 30px; font-family: sans-serif; max-width: 800px; margin: 0 auto;",
             ),
         )
@@ -636,6 +747,7 @@ def admin():
                     A("Panel de Credenciales", href="/credenciales"),
                     " - Gestionar claves del sistema",
                 ),
+                P(A("Cerrar Sesión", href="/logout")),
                 style="background: #f5f5f5; padding: 20px; font-family: sans-serif;",
             ),
         )
