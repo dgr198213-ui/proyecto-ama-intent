@@ -22,6 +22,8 @@ IS_SERVERLESS = bool(
 # Initialize Supabase client if configured
 supabase_client = None
 _use_supabase_actual = USE_SUPABASE  # Track actual state separately
+_supabase_init_error = None  # Track initialization error
+
 if USE_SUPABASE and SUPABASE_URL and SUPABASE_KEY:
     try:
         from supabase import Client, create_client
@@ -29,8 +31,34 @@ if USE_SUPABASE and SUPABASE_URL and SUPABASE_KEY:
         supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
         logger.info("✅ Supabase client initialized successfully")
     except Exception as e:
+        _supabase_init_error = str(e)
         logger.error(f"❌ Failed to initialize Supabase client: {e}")
-        logger.warning("⚠️ Falling back to SQLite storage")
+
+        # In serverless environments with USE_SUPABASE=true, fail explicitly
+        if IS_SERVERLESS:
+            logger.critical(
+                "🚨 CRITICAL: USE_SUPABASE=true in serverless environment but "
+                "Supabase initialization failed. Memory features are disabled. "
+                "Please fix Supabase configuration."
+            )
+            _use_supabase_actual = False
+            # Don't fallback to SQLite in serverless when Supabase is explicitly requested
+        else:
+            # In local/dev environments, allow fallback
+            logger.warning("⚠️ Falling back to SQLite storage (local/dev mode)")
+            _use_supabase_actual = False
+elif USE_SUPABASE and (not SUPABASE_URL or not SUPABASE_KEY):
+    _supabase_init_error = "Missing SUPABASE_URL or SUPABASE_KEY"
+    logger.error(f"❌ {_supabase_init_error}")
+
+    if IS_SERVERLESS:
+        logger.critical(
+            "🚨 CRITICAL: USE_SUPABASE=true but credentials missing in serverless. "
+            "Memory features are disabled."
+        )
+        _use_supabase_actual = False
+    else:
+        logger.warning("⚠️ Falling back to SQLite storage (local/dev mode)")
         _use_supabase_actual = False
 
 
@@ -41,9 +69,18 @@ def _is_using_supabase() -> bool:
 
 # SQLite configuration (fallback or local development)
 if IS_SERVERLESS and not _use_supabase_actual:
-    # Use /tmp directory for serverless (ephemeral storage)
-    DB_PATH = "/tmp/ama_memory.db"
-    logger.info("ℹ️ Using ephemeral SQLite storage in /tmp (serverless mode)")
+    # In serverless with failed Supabase, don't use SQLite
+    if USE_SUPABASE:
+        # User wanted Supabase but it failed - don't fallback
+        DB_PATH = None
+        logger.warning(
+            "⚠️ No database available: Supabase failed in serverless mode. "
+            "Memory features are disabled."
+        )
+    else:
+        # User explicitly wants SQLite in serverless (ephemeral)
+        DB_PATH = "/tmp/ama_memory.db"
+        logger.info("ℹ️ Using ephemeral SQLite storage in /tmp (serverless mode)")
 elif not _use_supabase_actual:
     # Use data directory for normal deployments
     DB_PATH = "data/ama_memory.db"
@@ -59,24 +96,104 @@ def check_database_connection() -> Dict[str, Any]:
     """
     Check database connection health.
     Returns status information about the database connection.
+
+    Returns a stable JSON structure with:
+    - type: "supabase" or "sqlite"
+    - connected: bool
+    - message: user-friendly status message
+    - error_type: classification of error (if any)
+    - details: additional non-sensitive context (if applicable)
     """
     using_supabase = _is_using_supabase()
     result = {
         "type": "supabase" if using_supabase else "sqlite",
         "connected": False,
         "message": "",
-        "url": SUPABASE_URL if using_supabase else DB_PATH,
+        "error_type": None,
+        "details": None,
     }
+
+    # Check if Supabase was requested but failed to initialize
+    if USE_SUPABASE and not using_supabase:
+        result["connected"] = False
+        result["error_type"] = "initialization_failed"
+        result["message"] = "Supabase initialization failed"
+        result["details"] = (
+            "Supabase was enabled but failed to initialize. "
+            "Check SUPABASE_URL and SUPABASE_KEY configuration."
+        )
+        if IS_SERVERLESS:
+            result["details"] += " Memory features are disabled in serverless mode."
+        return result
 
     try:
         if using_supabase:
             # Test Supabase connection by querying the table
-            response = (
-                supabase_client.table("interactions").select("id").limit(1).execute()
-            )
-            result["connected"] = True
-            result["message"] = "Supabase connection successful"
-            logger.info("✅ Supabase connection check passed")
+            try:
+                response = (
+                    supabase_client.table("interactions")
+                    .select("id")
+                    .limit(1)
+                    .execute()
+                )
+                result["connected"] = True
+                result["message"] = "Supabase connection successful"
+                logger.info("✅ Supabase connection check passed")
+            except Exception as e:
+                error_str = str(e).lower()
+                result["connected"] = False
+
+                # Classify error type without leaking sensitive information
+                if (
+                    "jwt" in error_str
+                    or "unauthorized" in error_str
+                    or "invalid" in error_str
+                    and "key" in error_str
+                ):
+                    result["error_type"] = "authentication_failed"
+                    result["message"] = "Authentication failed: Invalid API key or JWT"
+                    result["details"] = (
+                        "Check that SUPABASE_KEY is valid and not expired"
+                    )
+                elif (
+                    "permission" in error_str
+                    or "rls" in error_str
+                    or "policy" in error_str
+                ):
+                    result["error_type"] = "permission_denied"
+                    result["message"] = "Permission denied: RLS policy violation"
+                    result["details"] = (
+                        "Row Level Security may be blocking access. "
+                        "Use service_role key or adjust RLS policies."
+                    )
+                elif (
+                    "not found" in error_str
+                    or "does not exist" in error_str
+                    or "relation" in error_str
+                ):
+                    result["error_type"] = "table_not_found"
+                    result["message"] = "Table 'interactions' not found"
+                    result["details"] = (
+                        "The interactions table may not exist. "
+                        "Run the schema setup SQL in Supabase."
+                    )
+                elif (
+                    "network" in error_str
+                    or "connection" in error_str
+                    or "timeout" in error_str
+                ):
+                    result["error_type"] = "network_error"
+                    result["message"] = "Network error connecting to Supabase"
+                    result["details"] = "Check network connectivity and SUPABASE_URL"
+                else:
+                    result["error_type"] = "unknown_error"
+                    result["message"] = "Database connection failed"
+                    result["details"] = (
+                        "An unexpected error occurred. Check logs for details."
+                    )
+
+                logger.error(f"❌ Supabase connection check failed: {e}")
+
         elif DB_PATH:
             # Test SQLite connection
             with get_db_connection() as conn:
@@ -86,11 +203,18 @@ def check_database_connection() -> Dict[str, Any]:
                 result["message"] = "SQLite connection successful"
                 logger.info("✅ SQLite connection check passed")
         else:
+            result["connected"] = False
+            result["error_type"] = "no_database"
             result["message"] = "No database configured"
+            result["details"] = (
+                "No database is available. Configure Supabase or enable SQLite."
+            )
             logger.warning("⚠️ No database configured")
     except Exception as e:
         result["connected"] = False
-        result["message"] = f"Connection failed: {str(e)}"
+        result["error_type"] = "unknown_error"
+        result["message"] = "Database connection check failed"
+        # Don't include raw exception in message to avoid leaking secrets
         logger.error(f"❌ Database connection check failed: {e}")
 
     return result

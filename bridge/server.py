@@ -135,20 +135,40 @@ async def db_check():
     """
     Database connection check endpoint.
     Tests connectivity to the configured database (Supabase or SQLite).
+
+    Returns appropriate HTTP status codes:
+    - 200: Database connected successfully
+    - 503: Database connection failed (service unavailable)
+    - 500: Unexpected error during check
     """
     try:
         db_status = check_database_connection()
 
-        return {
-            "status": "success" if db_status["connected"] else "error",
+        # Determine appropriate HTTP status code
+        if db_status["connected"]:
+            http_status = 200
+            status = "success"
+        else:
+            # Service unavailable - database is not accessible
+            http_status = 503
+            status = "unavailable"
+
+        response = {
+            "status": status,
             "database": db_status,
             "timestamp": datetime.now().isoformat(),
         }
+
+        if http_status == 200:
+            return response
+        else:
+            return response, http_status
+
     except Exception as e:
         logger.error(f"Error checking database connection: {e}")
         return {
             "status": "error",
-            "error": str(e),
+            "message": "Internal error during database check",
             "timestamp": datetime.now().isoformat(),
         }, 500
 
@@ -524,6 +544,33 @@ def admin():
         db_bg = "#f0fdf4" if db_status["connected"] else "#fef2f2"
         db_icon = "✅" if db_status["connected"] else "❌"
 
+        # Build database details elements
+        db_details = [
+            P(
+                f"{db_icon} Tipo: {db_status['type'].upper()}",
+                style="margin: 5px 0;",
+            ),
+            P(f"Conexión: {db_status['message']}", style="margin: 5px 0;"),
+        ]
+
+        # Add error type if present
+        if db_status.get("error_type"):
+            db_details.append(
+                P(
+                    f"Error Type: {db_status['error_type']}",
+                    style="margin: 5px 0; font-weight: bold;",
+                )
+            )
+
+        # Add details if present
+        if db_status.get("details"):
+            db_details.append(
+                P(
+                    f"Details: {db_status['details']}",
+                    style="margin: 5px 0; font-size: 0.9em;",
+                )
+            )
+
         return Titled(
             "AMA-Intent v3 - Admin Dashboard",
             Div(
@@ -531,15 +578,7 @@ def admin():
                 *warning_elements,
                 H2("💾 Estado de la Base de Datos"),
                 Div(
-                    P(
-                        f"{db_icon} Tipo: {db_status['type'].upper()}",
-                        style="margin: 5px 0;",
-                    ),
-                    P(f"Conexión: {db_status['message']}", style="margin: 5px 0;"),
-                    P(
-                        f"URL: {db_status['url']}",
-                        style="margin: 5px 0; font-size: 0.9em; color: #6b7280;",
-                    ),
+                    *db_details,
                     style=f"background: {db_bg}; color: {db_color}; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid {db_color};",
                 ),
                 H2("📊 Estadísticas de Memoria"),
