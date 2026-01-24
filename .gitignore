@@ -13,7 +13,6 @@ build/
 *.o
 
 # Deployment
-.vercel
 *.log
 logs/
 backups/

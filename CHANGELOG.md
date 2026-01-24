@@ -5,18 +5,18 @@
 ### 🔥 Breaking Changes
 - **Removed Supabase Support**: Simplified to SQLite-only database
 - **Removed PostgreSQL Dependencies**: No longer require `supabase>=2.0.0` or `postgrest>=0.10.0`
-- **Removed Vercel Configuration**: Removed empty `vercel.json` - project is local-only
+- **Removed Vercel Integration**: Removed `asgi.py` and `.vercel` directory from `.gitignore`
 
 ### ✨ Improvements
 - **Reduced Dependencies**: Removed 2 unnecessary packages (supabase, postgrest)
 - **Simplified Codebase**: Removed 270+ lines of Supabase-specific code from `memory.py`
-- **Clearer Purpose**: Added `DEPLOYMENT.md` to clarify this is a local-only project
-- **Faster Startup**: No more Supabase connection attempts or fallback logic
+- **Clearer Purpose**: Project is explicitly local-only, no serverless support
+- **Faster Startup**: No more connection attempts to external services
 - **Easier Setup**: Single database backend (SQLite) with no configuration needed
 
 ### 📝 Documentation
 - Added `DEPLOYMENT.md` explaining local-only architecture
-- Removed `SUPABASE_SETUP.md` (no longer relevant)
+- Updated documentation to remove all Vercel references
 - Updated `.env.example` to remove Supabase variables
 
 ### 🧪 Testing

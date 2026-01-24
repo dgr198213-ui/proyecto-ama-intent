@@ -36,18 +36,18 @@ python start.py
 
 El sistema estará disponible en `http://localhost:5001`
 
-## ❌ Despliegue en Vercel/Serverless NO Soportado
+## ❌ Despliegue en Servicios Serverless NO Soportado
 
-AMA-Intent v3 **NO** es compatible con Vercel u otros servicios serverless porque:
+AMA-Intent v3 **NO** es compatible con servicios serverless porque:
 
 1. **Requiere Ollama**: El sistema necesita una instancia de Ollama ejecutándose localmente
-2. **Sin Supabase**: La versión actual solo usa SQLite local para persistencia
+2. **Base de datos SQLite local**: La versión actual usa SQLite para persistencia
 3. **Arquitectura Local**: Diseñado específicamente para ejecución en máquinas locales
 
-### ¿Por qué no Vercel?
+### ¿Por qué no serverless?
 
 - Ollama no puede ejecutarse en entornos serverless
-- El filesystem de Vercel es de solo lectura (excepto /tmp que es efímero)
+- El filesystem de la mayoría de servicios serverless es de solo lectura o efímero
 - El modelo de ejecución serverless no es compatible con servicios de AI locales
 
 ## 🐳 Despliegue con Docker (Experimental)
