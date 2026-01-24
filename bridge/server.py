@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 
 import uvicorn
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet
 from dotenv import find_dotenv, load_dotenv, set_key
 from fasthtml.common import *
 
@@ -398,7 +398,11 @@ def credenciales():
                     Button(
                         "💾 Guardar y Recargar",
                         type="submit",
-                        style="margin-top: 20px; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;",
+                        style=(
+                            "margin-top: 20px; padding: 10px 20px; "
+                            "background: #2563eb; color: white; border: none; "
+                            "border-radius: 4px; cursor: pointer; font-weight: bold;"
+                        ),
                     ),
                     action="/api/credenciales/save",
                     method="POST",
@@ -498,7 +502,11 @@ async def save_credenciales(req):
                     A("Ver Admin", href="/admin"),
                     style="margin-top: 20px;",
                 ),
-                style="background: #f0fdf4; padding: 30px; border: 2px solid #059669; border-radius: 8px; max-width: 600px; margin: 50px auto;",
+                style=(
+                    "background: #f0fdf4; padding: 30px; "
+                    "border: 2px solid #059669; border-radius: 8px; "
+                    "max-width: 600px; margin: 50px auto;"
+                ),
             ),
         )
     except Exception as e:
@@ -579,7 +587,11 @@ def admin():
                 H2("💾 Estado de la Base de Datos"),
                 Div(
                     *db_details,
-                    style=f"background: {db_bg}; color: {db_color}; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid {db_color};",
+                    style=(
+                        f"background: {db_bg}; color: {db_color}; "
+                        f"padding: 15px; border-radius: 8px; margin: 15px 0; "
+                        f"border: 2px solid {db_color};"
+                    ),
                 ),
                 H2("📊 Estadísticas de Memoria"),
                 P(f"Total de interacciones: {stats['total_interactions']}"),

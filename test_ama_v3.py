@@ -9,7 +9,6 @@ import shutil
 import sqlite3
 import sys
 import tempfile
-from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -104,7 +103,7 @@ class TestAMAv3:
         assert "Write a function" in thoughts, "Second thought not found"
         assert "Analyze data" in thoughts, "Third thought not found"
 
-        print(f"   ✓ Saved and retrieved 3 thoughts successfully")
+        print("   ✓ Saved and retrieved 3 thoughts successfully")
 
     def test_memory_limit(self):
         """Test thought retrieval limit"""
@@ -125,7 +124,7 @@ class TestAMAv3:
         assert "Input 4" in thoughts, "Most recent thought not found"
         assert "Input 3" in thoughts, "Second most recent thought not found"
 
-        print(f"   ✓ Limit parameter works correctly")
+        print("   ✓ Limit parameter works correctly")
 
     def test_memory_search(self):
         """Test searching through memories"""
