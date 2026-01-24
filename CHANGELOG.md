@@ -1,5 +1,28 @@
 # 📝 Changelog - AMA-Intent v3
 
+## [v3.3.0] - 2026-01-24
+
+### 🔥 Breaking Changes
+- **Removed Supabase Support**: Simplified to SQLite-only database
+- **Removed PostgreSQL Dependencies**: No longer require `supabase>=2.0.0` or `postgrest>=0.10.0`
+- **Removed Vercel Configuration**: Removed empty `vercel.json` - project is local-only
+
+### ✨ Improvements
+- **Reduced Dependencies**: Removed 2 unnecessary packages (supabase, postgrest)
+- **Simplified Codebase**: Removed 270+ lines of Supabase-specific code from `memory.py`
+- **Clearer Purpose**: Added `DEPLOYMENT.md` to clarify this is a local-only project
+- **Faster Startup**: No more Supabase connection attempts or fallback logic
+- **Easier Setup**: Single database backend (SQLite) with no configuration needed
+
+### 📝 Documentation
+- Added `DEPLOYMENT.md` explaining local-only architecture
+- Removed `SUPABASE_SETUP.md` (no longer relevant)
+- Updated `.env.example` to remove Supabase variables
+
+### 🧪 Testing
+- All 11 tests still passing after refactoring
+- Verified memory operations work correctly with SQLite
+
 ## [v3.1.0] - 2026-01-23
 
 ### 🎉 Major Enhancements
