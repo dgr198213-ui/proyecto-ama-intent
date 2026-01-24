@@ -12,8 +12,9 @@ Note: On Vercel (serverless), the database will be stored in /tmp
 which is ephemeral. For persistent storage, consider using an external
 database service.
 """
+
 from bridge.server import app
 
 # Export the ASGI application for Vercel
 # The app variable is now available at module level for Vercel to discover
-__all__ = ['app']
+__all__ = ["app"]

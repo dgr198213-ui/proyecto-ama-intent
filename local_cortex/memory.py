@@ -1,9 +1,9 @@
-import sqlite3
-import os
 import logging
-from datetime import datetime, timedelta
+import os
+import sqlite3
 from contextlib import contextmanager
-from typing import Optional, Dict, List, Any
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,14 +13,19 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
 # Check if we're in a serverless environment
-IS_SERVERLESS = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("LAMBDA_TASK_ROOT"))
+IS_SERVERLESS = bool(
+    os.getenv("VERCEL")
+    or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+    or os.getenv("LAMBDA_TASK_ROOT")
+)
 
 # Initialize Supabase client if configured
 supabase_client = None
 _use_supabase_actual = USE_SUPABASE  # Track actual state separately
 if USE_SUPABASE and SUPABASE_URL and SUPABASE_KEY:
     try:
-        from supabase import create_client, Client
+        from supabase import Client, create_client
+
         supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
         logger.info("✅ Supabase client initialized successfully")
     except Exception as e:
@@ -60,13 +65,15 @@ def check_database_connection() -> Dict[str, Any]:
         "type": "supabase" if using_supabase else "sqlite",
         "connected": False,
         "message": "",
-        "url": SUPABASE_URL if using_supabase else DB_PATH
+        "url": SUPABASE_URL if using_supabase else DB_PATH,
     }
-    
+
     try:
         if using_supabase:
             # Test Supabase connection by querying the table
-            response = supabase_client.table("interactions").select("id").limit(1).execute()
+            response = (
+                supabase_client.table("interactions").select("id").limit(1).execute()
+            )
             result["connected"] = True
             result["message"] = "Supabase connection successful"
             logger.info("✅ Supabase connection check passed")
@@ -85,7 +92,7 @@ def check_database_connection() -> Dict[str, Any]:
         result["connected"] = False
         result["message"] = f"Connection failed: {str(e)}"
         logger.error(f"❌ Database connection check failed: {e}")
-    
+
     return result
 
 
@@ -93,7 +100,7 @@ def check_database_connection() -> Dict[str, Any]:
 def get_db_connection():
     """
     Context manager for SQLite database connections.
-    
+
     Raises:
         RuntimeError: If Supabase is enabled. When using Supabase, access the database
                      through the module-level `supabase_client` object and its table() methods.
@@ -104,7 +111,7 @@ def get_db_connection():
             "Use the module-level 'supabase_client' object instead. "
             "Example: supabase_client.table('interactions').select('*').execute()"
         )
-    
+
     conn = sqlite3.connect(DB_PATH)
     try:
         yield conn
@@ -145,49 +152,57 @@ def init_db():
         # Initialize SQLite
         with get_db_connection() as conn:
             c = conn.cursor()
-            c.execute('''CREATE TABLE IF NOT EXISTS interactions
+            c.execute("""CREATE TABLE IF NOT EXISTS interactions
                          (id INTEGER PRIMARY KEY AUTOINCREMENT, 
                           timestamp TEXT NOT NULL, 
                           input TEXT NOT NULL, 
                           output TEXT NOT NULL, 
-                          intent TEXT)''')
+                          intent TEXT)""")
             # Create indexes for better performance
-            c.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON interactions(timestamp DESC)')
-            c.execute('CREATE INDEX IF NOT EXISTS idx_intent ON interactions(intent)')
+            c.execute(
+                "CREATE INDEX IF NOT EXISTS idx_timestamp ON interactions(timestamp DESC)"
+            )
+            c.execute("CREATE INDEX IF NOT EXISTS idx_intent ON interactions(intent)")
         logger.info("✅ SQLite database initialized")
 
 
 def save_thought(user_input: str, output: str, intent: str):
     """Save a thought/interaction to the database."""
     timestamp = datetime.now().isoformat()
-    
+
     if _is_using_supabase():
         try:
-            supabase_client.table("interactions").insert({
-                "timestamp": timestamp,
-                "input": user_input,
-                "output": output,
-                "intent": intent
-            }).execute()
+            supabase_client.table("interactions").insert(
+                {
+                    "timestamp": timestamp,
+                    "input": user_input,
+                    "output": output,
+                    "intent": intent,
+                }
+            ).execute()
         except Exception as e:
             logger.error(f"Failed to save thought to Supabase: {e}")
             raise
     else:
         with get_db_connection() as conn:
             c = conn.cursor()
-            c.execute("INSERT INTO interactions (timestamp, input, output, intent) VALUES (?, ?, ?, ?)",
-                      (timestamp, user_input, output, intent))
+            c.execute(
+                "INSERT INTO interactions (timestamp, input, output, intent) VALUES (?, ?, ?, ?)",
+                (timestamp, user_input, output, intent),
+            )
 
 
 def get_last_thoughts(limit: int = 3) -> str:
     """Get the last N thoughts as formatted context string."""
     if _is_using_supabase():
         try:
-            response = supabase_client.table("interactions")\
-                .select("input, output")\
-                .order("id", desc=True)\
-                .limit(limit)\
+            response = (
+                supabase_client.table("interactions")
+                .select("input, output")
+                .order("id", desc=True)
+                .limit(limit)
                 .execute()
+            )
             rows = [(r["input"], r["output"]) for r in response.data]
         except Exception as e:
             logger.error(f"Failed to get thoughts from Supabase: {e}")
@@ -195,9 +210,12 @@ def get_last_thoughts(limit: int = 3) -> str:
     else:
         with get_db_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT input, output FROM interactions ORDER BY id DESC LIMIT ?", (limit,))
+            c.execute(
+                "SELECT input, output FROM interactions ORDER BY id DESC LIMIT ?",
+                (limit,),
+            )
             rows = c.fetchall()
-    
+
     return "\n".join([f"Usuario: {r[0]} | AMA: {r[1]}" for r in rows])
 
 
@@ -206,12 +224,14 @@ def search_thoughts(query: str, limit: int = 10) -> List[Dict[str, Any]]:
     if _is_using_supabase():
         try:
             # Use Supabase full-text search or ILIKE
-            response = supabase_client.table("interactions")\
-                .select("timestamp, input, output, intent")\
-                .or_(f"input.ilike.%{query}%,output.ilike.%{query}%")\
-                .order("id", desc=True)\
-                .limit(limit)\
+            response = (
+                supabase_client.table("interactions")
+                .select("timestamp, input, output, intent")
+                .or_(f"input.ilike.%{query}%,output.ilike.%{query}%")
+                .order("id", desc=True)
+                .limit(limit)
                 .execute()
+            )
             return response.data
         except Exception as e:
             logger.error(f"Failed to search thoughts in Supabase: {e}")
@@ -220,13 +240,18 @@ def search_thoughts(query: str, limit: int = 10) -> List[Dict[str, Any]]:
         with get_db_connection() as conn:
             c = conn.cursor()
             search_pattern = f"%{query}%"
-            c.execute("""SELECT timestamp, input, output, intent 
+            c.execute(
+                """SELECT timestamp, input, output, intent 
                          FROM interactions 
                          WHERE input LIKE ? OR output LIKE ?
                          ORDER BY id DESC LIMIT ?""",
-                      (search_pattern, search_pattern, limit))
+                (search_pattern, search_pattern, limit),
+            )
             rows = c.fetchall()
-        return [{"timestamp": r[0], "input": r[1], "output": r[2], "intent": r[3]} for r in rows]
+        return [
+            {"timestamp": r[0], "input": r[1], "output": r[2], "intent": r[3]}
+            for r in rows
+        ]
 
 
 def get_memory_stats() -> Dict[str, Any]:
@@ -234,44 +259,63 @@ def get_memory_stats() -> Dict[str, Any]:
     if _is_using_supabase():
         try:
             # Get total count
-            total_response = supabase_client.table("interactions")\
-                .select("id", count="exact")\
+            total_response = (
+                supabase_client.table("interactions")
+                .select("id", count="exact")
                 .execute()
+            )
             total_count = total_response.count or 0
-            
+
             # Get counts by intent - try RPC function first, fallback to direct query
             try:
                 intent_response = supabase_client.rpc("get_intent_counts").execute()
-                by_intent = {r["intent"]: r["count"] for r in (intent_response.data or [])}
+                by_intent = {
+                    r["intent"]: r["count"] for r in (intent_response.data or [])
+                }
             except Exception as rpc_error:
-                logger.warning(f"RPC function 'get_intent_counts' not available, using fallback: {rpc_error}")
+                logger.warning(
+                    f"RPC function 'get_intent_counts' not available, using fallback: {rpc_error}"
+                )
                 # Fallback: get all intents and count manually (less efficient but works)
-                intent_response = supabase_client.table("interactions")\
-                    .select("intent")\
-                    .execute()
+                intent_response = (
+                    supabase_client.table("interactions").select("intent").execute()
+                )
                 from collections import Counter
-                by_intent = dict(Counter(r["intent"] for r in intent_response.data if r.get("intent")))
-            
+
+                by_intent = dict(
+                    Counter(
+                        r["intent"] for r in intent_response.data if r.get("intent")
+                    )
+                )
+
             # Get date range
-            date_response = supabase_client.table("interactions")\
-                .select("timestamp")\
-                .order("timestamp", desc=False)\
-                .limit(1)\
+            date_response = (
+                supabase_client.table("interactions")
+                .select("timestamp")
+                .order("timestamp", desc=False)
+                .limit(1)
                 .execute()
-            first_interaction = date_response.data[0]["timestamp"] if date_response.data else None
-            
-            date_response = supabase_client.table("interactions")\
-                .select("timestamp")\
-                .order("timestamp", desc=True)\
-                .limit(1)\
+            )
+            first_interaction = (
+                date_response.data[0]["timestamp"] if date_response.data else None
+            )
+
+            date_response = (
+                supabase_client.table("interactions")
+                .select("timestamp")
+                .order("timestamp", desc=True)
+                .limit(1)
                 .execute()
-            last_interaction = date_response.data[0]["timestamp"] if date_response.data else None
-            
+            )
+            last_interaction = (
+                date_response.data[0]["timestamp"] if date_response.data else None
+            )
+
             return {
                 "total_interactions": total_count,
                 "by_intent": by_intent,
                 "first_interaction": first_interaction,
-                "last_interaction": last_interaction
+                "last_interaction": last_interaction,
             }
         except Exception as e:
             logger.error(f"Failed to get stats from Supabase: {e}")
@@ -279,48 +323,49 @@ def get_memory_stats() -> Dict[str, Any]:
                 "total_interactions": 0,
                 "by_intent": {},
                 "first_interaction": None,
-                "last_interaction": None
+                "last_interaction": None,
             }
     else:
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("SELECT COUNT(*) FROM interactions")
             total_count = c.fetchone()[0]
-            
+
             c.execute("SELECT intent, COUNT(*) FROM interactions GROUP BY intent")
             by_intent = dict(c.fetchall())
-            
+
             c.execute("SELECT MIN(timestamp), MAX(timestamp) FROM interactions")
             date_range = c.fetchone()
-            
+
         return {
             "total_interactions": total_count,
             "by_intent": by_intent,
             "first_interaction": date_range[0],
-            "last_interaction": date_range[1]
+            "last_interaction": date_range[1],
         }
 
 
 def cleanup_old_thoughts(days: int = 30) -> int:
     """Archive or delete thoughts older than specified days."""
     cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
-    
+
     if _is_using_supabase():
         try:
             # Get count first
-            count_response = supabase_client.table("interactions")\
-                .select("id", count="exact")\
-                .lt("timestamp", cutoff_date)\
+            count_response = (
+                supabase_client.table("interactions")
+                .select("id", count="exact")
+                .lt("timestamp", cutoff_date)
                 .execute()
+            )
             count = count_response.count or 0
-            
+
             if count > 0:
                 # Delete old records
-                supabase_client.table("interactions")\
-                    .delete()\
-                    .lt("timestamp", cutoff_date)\
-                    .execute()
-            
+                supabase_client.table("interactions").delete().lt(
+                    "timestamp", cutoff_date
+                ).execute()
+
             return count
         except Exception as e:
             logger.error(f"Failed to cleanup thoughts in Supabase: {e}")
@@ -328,11 +373,15 @@ def cleanup_old_thoughts(days: int = 30) -> int:
     else:
         with get_db_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT COUNT(*) FROM interactions WHERE timestamp < ?", (cutoff_date,))
+            c.execute(
+                "SELECT COUNT(*) FROM interactions WHERE timestamp < ?", (cutoff_date,)
+            )
             count = c.fetchone()[0]
-            
+
             if count > 0:
-                c.execute("DELETE FROM interactions WHERE timestamp < ?", (cutoff_date,))
+                c.execute(
+                    "DELETE FROM interactions WHERE timestamp < ?", (cutoff_date,)
+                )
         return count
 
 
@@ -340,12 +389,14 @@ def get_thoughts_by_intent(intent: str, limit: int = 10) -> List[Dict[str, Any]]
     """Retrieve thoughts filtered by intent type."""
     if _is_using_supabase():
         try:
-            response = supabase_client.table("interactions")\
-                .select("timestamp, input, output")\
-                .eq("intent", intent)\
-                .order("id", desc=True)\
-                .limit(limit)\
+            response = (
+                supabase_client.table("interactions")
+                .select("timestamp, input, output")
+                .eq("intent", intent)
+                .order("id", desc=True)
+                .limit(limit)
                 .execute()
+            )
             return response.data
         except Exception as e:
             logger.error(f"Failed to get thoughts by intent from Supabase: {e}")
@@ -353,10 +404,12 @@ def get_thoughts_by_intent(intent: str, limit: int = 10) -> List[Dict[str, Any]]
     else:
         with get_db_connection() as conn:
             c = conn.cursor()
-            c.execute("""SELECT timestamp, input, output 
+            c.execute(
+                """SELECT timestamp, input, output 
                          FROM interactions 
                          WHERE intent = ?
                          ORDER BY id DESC LIMIT ?""",
-                      (intent, limit))
+                (intent, limit),
+            )
             rows = c.fetchall()
         return [{"timestamp": r[0], "input": r[1], "output": r[2]} for r in rows]

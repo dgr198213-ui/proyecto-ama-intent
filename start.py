@@ -1,6 +1,6 @@
 import os
-import sys
 import subprocess
+import sys
 
 
 def main():
@@ -13,7 +13,9 @@ def main():
 
     # Verificar Ollama (solución pragmática)
     try:
-        result = subprocess.run(["ollama", "list"], capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            ["ollama", "list"], capture_output=True, text=True, check=False
+        )
         if result.returncode != 0:
             print("❌ ERROR: Ollama no parece estar instalado o corriendo.")
             print("👉 Ejecuta 'ollama serve' en otra terminal.")
