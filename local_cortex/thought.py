@@ -1,10 +1,11 @@
-import ollama
 import logging
 import os
 
+import ollama
+
 # Configure logging
 log_level = os.getenv("LOG_LEVEL", "INFO")
-logging.basicConfig(level=getattr(logging, log_level), format='%(message)s')
+logging.basicConfig(level=getattr(logging, log_level), format="%(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -23,23 +24,26 @@ class LocalBrain:
         logger.info(f"⚡ [Cortex] Procesando: {user_input[:40]}...")
 
         messages = [
-            {'role': 'system', 'content': self.system_prompt},
-            {'role': 'user', 'content': f"Contexto previo: {context}\n\nPregunta: {user_input}"}
+            {"role": "system", "content": self.system_prompt},
+            {
+                "role": "user",
+                "content": f"Contexto previo: {context}\n\nPregunta: {user_input}",
+            },
         ]
 
         response = ollama.chat(model=self.model, messages=messages)
-        return response['message']['content']
+        return response["message"]["content"]
 
     def fast_classify(self, text):
         """Decide qué tipo de tarea es sin gastar mucha energía."""
-        res = ollama.generate(model=self.model, prompt=f"Clasifica en una palabra [CODIGO, CHAT, ANALISIS]: {text}")
-        classification = res['response'].strip().upper()
-        
+        res = ollama.generate(
+            model=self.model,
+            prompt=f"Clasifica en una palabra [CODIGO, CHAT, ANALISIS]: {text}",
+        )
+        classification = res["response"].strip().upper()
+
         # Extract confidence if model provides it, otherwise return default
         confidence = 0.8  # Default confidence
-        
+
         # Return structured classification
-        return {
-            "intent": classification,
-            "confidence": confidence
-        }
+        return {"intent": classification, "confidence": confidence}
