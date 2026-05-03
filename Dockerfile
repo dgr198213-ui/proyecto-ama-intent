@@ -39,5 +39,5 @@ ENV LOG_LEVEL=INFO
 # Set OLLAMA_BASE_URL environment variable to connect to Ollama
 # Example: OLLAMA_BASE_URL=http://host.docker.internal:11434
 
-# Run the application
+# Run the application using ASGI server
 CMD ["uvicorn", "bridge.server:app", "--host", "0.0.0.0", "--port", "5001"]

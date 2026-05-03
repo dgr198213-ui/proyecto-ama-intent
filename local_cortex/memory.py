@@ -1,14 +1,52 @@
+import logging
 import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
+logger = logging.getLogger(__name__)
+
+# SQLite configuration for local development
 DB_PATH = "data/ama_memory.db"
+# Ensure the data directory exists
+os.makedirs("data", exist_ok=True)
+logger.info("ℹ️ Using local SQLite storage in data/")
+
+
+def check_database_connection() -> Dict[str, Any]:
+    """
+    Check database connection health.
+    Returns status information about the database connection.
+    """
+    result = {
+        "type": "sqlite",
+        "connected": False,
+        "message": "",
+        "error_type": None,
+        "details": None,
+    }
+
+    try:
+        # Test SQLite connection
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            result["connected"] = True
+            result["message"] = "SQLite connection successful"
+            logger.info("✅ SQLite connection check passed")
+    except Exception as e:
+        result["connected"] = False
+        result["error_type"] = "unknown_error"
+        result["message"] = "Database connection check failed"
+        logger.error(f"❌ Database connection check failed: {e}")
+
+    return result
 
 
 @contextmanager
 def get_db_connection():
-    """Context manager for database connections."""
+    """Context manager for SQLite database connections."""
     conn = sqlite3.connect(DB_PATH)
     try:
         yield conn
@@ -21,16 +59,27 @@ def get_db_connection():
 
 
 def init_db():
+    """Initialize database schema."""
     with get_db_connection() as conn:
         c = conn.cursor()
+        c.execute("""CREATE TABLE IF NOT EXISTS interactions
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      timestamp TEXT NOT NULL,
+                      input TEXT NOT NULL,
+                      output TEXT NOT NULL,
+                      intent TEXT)""")
+        # Create indexes for better performance
         c.execute(
-            """CREATE TABLE IF NOT EXISTS interactions
-                     (id INTEGER PRIMARY KEY, timestamp TEXT, input TEXT, output TEXT, intent TEXT)"""
+            "CREATE INDEX IF NOT EXISTS idx_timestamp ON interactions(timestamp DESC)"
         )
+        c.execute("CREATE INDEX IF NOT EXISTS idx_intent ON interactions(intent)")
+    logger.info("✅ SQLite database initialized")
 
 
-def save_thought(user_input, output, intent):
+def save_thought(user_input: str, output: str, intent: str):
+    """Save a thought/interaction to the database."""
     timestamp = datetime.now().isoformat()
+
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute(
@@ -39,24 +88,27 @@ def save_thought(user_input, output, intent):
         )
 
 
-def get_last_thoughts(limit=3):
+def get_last_thoughts(limit: int = 3) -> str:
+    """Get the last N thoughts as formatted context string."""
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute(
-            "SELECT input, output FROM interactions ORDER BY id DESC LIMIT ?", (limit,)
+            "SELECT input, output FROM interactions ORDER BY id DESC LIMIT ?",
+            (limit,),
         )
         rows = c.fetchall()
+
     return "\n".join([f"Usuario: {r[0]} | AMA: {r[1]}" for r in rows])
 
 
-def search_thoughts(query, limit=10):
+def search_thoughts(query: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Search thoughts by keyword in input or output."""
     with get_db_connection() as conn:
         c = conn.cursor()
         search_pattern = f"%{query}%"
         c.execute(
-            """SELECT timestamp, input, output, intent 
-                     FROM interactions 
+            """SELECT timestamp, input, output, intent
+                     FROM interactions
                      WHERE input LIKE ? OR output LIKE ?
                      ORDER BY id DESC LIMIT ?""",
             (search_pattern, search_pattern, limit),
@@ -67,7 +119,7 @@ def search_thoughts(query, limit=10):
     ]
 
 
-def get_memory_stats():
+def get_memory_stats() -> Dict[str, Any]:
     """Get statistics about the memory database."""
     with get_db_connection() as conn:
         c = conn.cursor()
@@ -88,9 +140,10 @@ def get_memory_stats():
     }
 
 
-def cleanup_old_thoughts(days=30):
+def cleanup_old_thoughts(days: int = 30) -> int:
     """Archive or delete thoughts older than specified days."""
     cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
+
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute(
@@ -103,13 +156,13 @@ def cleanup_old_thoughts(days=30):
     return count
 
 
-def get_thoughts_by_intent(intent, limit=10):
+def get_thoughts_by_intent(intent: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Retrieve thoughts filtered by intent type."""
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute(
-            """SELECT timestamp, input, output 
-                     FROM interactions 
+            """SELECT timestamp, input, output
+                     FROM interactions
                      WHERE intent = ?
                      ORDER BY id DESC LIMIT ?""",
             (intent, limit),
