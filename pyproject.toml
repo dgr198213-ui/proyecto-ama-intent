@@ -1,7 +1,7 @@
 [project]
 name = "proyecto-ama-intent"
 version = "3.2.0"
-description = "Sistema de Cerebro Artificial Biomimético con gobernanza AMA-G"
+description = "Sistema de Cerebro Artificial Biomimetico con gobernanza AMA-G"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -19,15 +19,15 @@ build-backend = "hatchling.build"
 [tool.black]
 line-length = 88
 target-version = ["py310", "py311"]
-include = '\.pyi?$'
+include = '\\.pyi?$'
 extend-exclude = '''
 /(
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
+  \\.eggs
+  | \\.git
+  | \\.hg
+  | \\.mypy_cache
+  | \\.tox
+  | \\.venv
   | venv
   | _build
   | buck-out
