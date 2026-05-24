@@ -1,13 +1,15 @@
 import logging
 import os
+import shutil
 from datetime import datetime
 
 import uvicorn
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet
 from dotenv import find_dotenv, load_dotenv, set_key
 from fasthtml.common import *
 
 from local_cortex.memory import (
+    check_database_connection,
     cleanup_old_thoughts,
     get_last_thoughts,
     get_memory_stats,
@@ -32,7 +34,7 @@ def validate_shared_secret(req):
     """Validate AMA shared secret from request headers."""
     expected_secret = os.getenv("AMA_SHARED_SECRET", "")
     if not expected_secret or expected_secret == "change-this-secret-in-production":
-        logger.warning("⚠️ AMA_SHARED_SECRET not properly configured")
+        logger.warning("[WARNING] AMA_SHARED_SECRET not properly configured")
         return False
 
     provided_secret = req.headers.get("X-AMA-Secret", "")
@@ -55,7 +57,7 @@ def validate_fernet_key():
 def reload_env():
     """Hot reload environment variables from .env file."""
     load_dotenv(override=True)
-    logger.info("♻️ Environment variables reloaded")
+    logger.info("[RELOAD] Environment variables reloaded")
 
 
 def get_security_warnings():
@@ -66,21 +68,28 @@ def get_security_warnings():
     shared_secret = os.getenv("AMA_SHARED_SECRET", "")
     if not shared_secret or shared_secret == "change-this-secret-in-production":
         warnings.append(
-            "⚠️ AMA_SHARED_SECRET no configurado o usando valor por defecto"
+            "[WARNING] AMA_SHARED_SECRET no configurado o usando valor por defecto"
         )
 
     # Check Fernet key
     fernet_status = validate_fernet_key()
     if fernet_status is False:
-        warnings.append("⚠️ FERNET_KEY mal formateado o inválido")
+        warnings.append("[WARNING] FERNET_KEY mal formateado o invalido")
     elif fernet_status is None:
-        warnings.append("ℹ️ FERNET_KEY no configurado (opcional)")
+        warnings.append("[INFO] FERNET_KEY no configurado (opcional)")
 
     return warnings
 
 
-# Inicialización del sistema
-init_db()
+# Inicializacion del sistema
+try:
+    init_db()
+    logger.info("[OK] Database initialized successfully")
+except Exception as e:
+    logger.warning(
+        f"[WARNING] Database initialization failed: {e}. Memory features may be limited."
+    )
+
 brain = LocalBrain()
 app, rt = fast_app()
 
@@ -90,8 +99,14 @@ def get():
     return Titled(
         "AMA-Intent v3 (Local Brain)",
         Div(
-            H1("🧠 Sistema Biomimético: OPERATIVO"),
-            P("Conectado a puerto 5001. Esperando señal de Qodeia.com..."),
+            H1("[BRAIN] Sistema Biomimetico: OPERATIVO"),
+            P("Conectado a puerto 5001. Esperando senal de Qodeia.com..."),
+            Div(
+                A("[STATS] Panel de Admin", href="/admin"),
+                " | ",
+                A("[LOCK] Gestionar Credenciales", href="/credenciales"),
+                style="margin-bottom: 20px;",
+            ),
             Div(
                 id="logs",
                 style="background: #111; color: #0f0; padding: 10px; font-family: monospace;",
@@ -104,8 +119,8 @@ def get():
 async def health(req):
     """Health check endpoint with shared secret validation."""
     if not validate_shared_secret(req):
-        logger.warning("🚫 Unauthorized health check attempt")
-        return {"error": "Unauthorized", "status": "error"}, 401
+        logger.warning("[BLOCKED] Unauthorized health check attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
 
     try:
         stats = get_memory_stats()
@@ -119,7 +134,53 @@ async def health(req):
         }
     except Exception as e:
         logger.error(f"Error in health check: {e}")
-        return {"error": str(e), "status": "error"}, 500
+        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
+
+
+@rt("/api/db/check")
+async def db_check():
+    """
+    Database connection check endpoint.
+    Tests connectivity to the configured database (Supabase or SQLite).
+
+    Returns appropriate HTTP status codes:
+    - 200: Database connected successfully
+    - 503: Database connection failed (service unavailable)
+    - 500: Unexpected error during check
+    """
+    try:
+        db_status = check_database_connection()
+
+        # Determine appropriate HTTP status code
+        if db_status["connected"]:
+            http_status = 200
+            status = "success"
+        else:
+            # Service unavailable - database is not accessible
+            http_status = 503
+            status = "unavailable"
+
+        response = {
+            "status": status,
+            "database": db_status,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        if http_status == 200:
+            return response
+        else:
+            return JSONResponse(response, status_code=http_status)
+
+    except Exception as e:
+        logger.error(f"Error checking database connection: {e}")
+        return JSONResponse(
+            {
+                "status": "error",
+                "message": "Internal error during database check",
+                "timestamp": datetime.now().isoformat(),
+            },
+            status_code=500,
+        )
 
 
 @rt("/api/synapse", methods=["POST"])
@@ -127,15 +188,15 @@ async def synapse(req):
     """Endpoint principal que recibe datos de tu web."""
     # Validate shared secret for production security
     if not validate_shared_secret(req):
-        logger.warning("🚫 Unauthorized synapse request")
-        return {"error": "Unauthorized", "status": "error"}, 401
+        logger.warning("[BLOCKED] Unauthorized synapse request")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
 
     try:
         form = await req.form()
         user_input = form.get("input", "")
 
         if not user_input:
-            return {"error": "Cortex recibió señal vacía", "status": "error"}
+            return {"error": "Cortex recibio senal vacia", "status": "error"}
 
         # Get context limit from environment
         context_limit = int(os.getenv("MEMORY_CONTEXT_LIMIT", "5"))
@@ -177,6 +238,10 @@ async def synapse(req):
 @rt("/api/memory/search")
 async def memory_search(req):
     """Search through stored memories."""
+    if not validate_shared_secret(req):
+        logger.warning("[BLOCKED] Unauthorized memory search attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
+
     try:
         query = req.query_params.get("q", "")
         limit = int(req.query_params.get("limit", "10"))
@@ -197,8 +262,12 @@ async def memory_search(req):
 
 
 @rt("/api/memory/stats")
-async def memory_stats():
+async def memory_stats(req):
     """Get memory statistics."""
+    if not validate_shared_secret(req):
+        logger.warning("[BLOCKED] Unauthorized memory stats attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
+
     try:
         stats = get_memory_stats()
         return {"status": "success", "stats": stats}
@@ -210,6 +279,10 @@ async def memory_stats():
 @rt("/api/memory/cleanup", methods=["POST"])
 async def memory_cleanup(req):
     """Cleanup old memories."""
+    if not validate_shared_secret(req):
+        logger.warning("[BLOCKED] Unauthorized memory cleanup attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
+
     try:
         form = await req.form()
         days = int(form.get("days", os.getenv("MEMORY_ARCHIVE_DAYS", "30")))
@@ -228,6 +301,10 @@ async def memory_cleanup(req):
 @rt("/api/memory/by-intent/{intent}")
 async def memory_by_intent(intent: str, req):
     """Get memories filtered by intent."""
+    if not validate_shared_secret(req):
+        logger.warning("[BLOCKED] Unauthorized memory by-intent attempt")
+        return JSONResponse({"error": "Unauthorized", "status": "error"}, status_code=401)
+
     try:
         # Make limit configurable via query parameter
         limit = int(req.query_params.get("limit", "10"))
@@ -240,12 +317,12 @@ async def memory_by_intent(intent: str, req):
         }
     except Exception as e:
         logger.error(f"Error retrieving memories by intent: {e}")
-        return {"error": str(e), "status": "error"}
+        return JSONResponse({"error": str(e), "status": "error"}, status_code=500)
 
 
 @rt("/credenciales")
 def credenciales():
-    """Panel de gestión de credenciales minimalista."""
+    """Panel de gestion de credenciales minimalista."""
     try:
         # Get current values (masked)
         shared_secret = os.getenv("AMA_SHARED_SECRET", "")
@@ -257,7 +334,7 @@ def credenciales():
             shared_secret[:8] + "..." if len(shared_secret) > 8 else shared_secret
         )
         fernet_key_display = (
-            fernet_key[:8] + "..." if len(fernet_key) > 8 else "(vacío)"
+            fernet_key[:8] + "..." if len(fernet_key) > 8 else "(vacio)"
         )
 
         warnings = get_security_warnings()
@@ -275,11 +352,11 @@ def credenciales():
             )
 
         return Titled(
-            "🔐 Gestión de Credenciales - AMA-Intent v3",
+            "[LOCK] Gestion de Credenciales - AMA-Intent v3",
             Div(
-                H1("🔐 Panel de Credenciales"),
+                H1("[LOCK] Panel de Credenciales"),
                 P(
-                    "Gestiona las claves críticas del sistema. Los cambios se aplican inmediatamente (hot reload).",
+                    "Gestiona las claves criticas del sistema. Los cambios se aplican inmediatamente (hot reload).",
                     style="color: #6b7280; margin-bottom: 20px;",
                 ),
                 warning_html,
@@ -296,11 +373,11 @@ def credenciales():
                         Input(
                             type="password",
                             name="ama_shared_secret",
-                            placeholder="Dejar vacío para no cambiar",
+                            placeholder="Dejar vacio para no cambiar",
                             style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;",
                         ),
                         P(
-                            "Secreto compartido para autenticación del bridge",
+                            "Secreto compartido para autenticacion del bridge",
                             style="color: #6b7280; font-size: 0.85em; margin-top: 5px;",
                         ),
                     ),
@@ -316,11 +393,11 @@ def credenciales():
                         Input(
                             type="password",
                             name="fernet_key",
-                            placeholder="Dejar vacío para no cambiar",
+                            placeholder="Dejar vacio para no cambiar",
                             style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;",
                         ),
                         P(
-                            "Clave de encriptación Fernet (opcional)",
+                            "Clave de encriptacion Fernet (opcional)",
                             style="color: #6b7280; font-size: 0.85em; margin-top: 5px;",
                         ),
                     ),
@@ -345,15 +422,18 @@ def credenciales():
                         ),
                     ),
                     Button(
-                        "💾 Guardar y Recargar",
+                        "[SAVE] Guardar y Recargar",
                         type="submit",
-                        style="margin-top: 20px; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;",
+                        style=(
+                            "margin-top: 20px; padding: 10px 20px; background: #2563eb; "
+                            "color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;"
+                        ),
                     ),
                     action="/api/credenciales/save",
                     method="POST",
                     style="max-width: 600px;",
                 ),
-                P(A("← Volver al Admin", href="/admin"), style="margin-top: 30px;"),
+                P(A("[ARROW] Volver al Admin", href="/admin"), style="margin-top: 30px;"),
                 style="background: #ffffff; padding: 30px; font-family: sans-serif; max-width: 800px; margin: 0 auto;",
             ),
         )
@@ -377,8 +457,6 @@ async def save_credenciales(req):
             # Create .env from .env.example if it doesn't exist
             env_example_path = env_path + ".example"
             if os.path.exists(env_example_path) and not os.path.exists(env_path):
-                import shutil
-
                 shutil.copy(env_example_path, env_path)
 
         updated_keys = []
@@ -400,11 +478,11 @@ async def save_credenciales(req):
             except Exception as e:
                 logger.warning(f"Invalid Fernet key provided: {e}")
                 return Titled(
-                    "Error de Validación",
+                    "Error de Validacion",
                     Div(
-                        H1("❌ Error"),
+                        H1("[X] Error"),
                         P(
-                            "La clave FERNET_KEY proporcionada no es válida.",
+                            "La clave FERNET_KEY proporcionada no es valida.",
                             style="color: #dc2626;",
                         ),
                         P(
@@ -412,7 +490,7 @@ async def save_credenciales(req):
                             style="color: #6b7280; font-size: 0.9em;",
                         ),
                         P(
-                            A("← Volver", href="/credenciales"),
+                            A("[ARROW] Volver", href="/credenciales"),
                             style="margin-top: 20px;",
                         ),
                     ),
@@ -427,12 +505,12 @@ async def save_credenciales(req):
         # Hot reload environment variables
         reload_env()
 
-        logger.info(f"✅ Credentials updated: {', '.join(updated_keys)}")
+        logger.info(f"[OK] Credentials updated: {', '.join(updated_keys)}")
 
         return Titled(
-            "✅ Credenciales Actualizadas",
+            "[OK] Credenciales Actualizadas",
             Div(
-                H1("✅ Cambios Guardados"),
+                H1("[OK] Cambios Guardados"),
                 P(
                     f"Las siguientes claves han sido actualizadas: {', '.join(updated_keys)}",
                     style="color: #059669; font-weight: bold;",
@@ -442,12 +520,15 @@ async def save_credenciales(req):
                     style="color: #6b7280; margin-top: 10px;",
                 ),
                 P(
-                    A("← Volver al panel", href="/credenciales"),
+                    A("[ARROW] Volver al panel", href="/credenciales"),
                     " | ",
                     A("Ver Admin", href="/admin"),
                     style="margin-top: 20px;",
                 ),
-                style="background: #f0fdf4; padding: 30px; border: 2px solid #059669; border-radius: 8px; max-width: 600px; margin: 50px auto;",
+                style=(
+                    "background: #f0fdf4; padding: 30px; border: 2px solid #059669; "
+                    "border-radius: 8px; max-width: 600px; margin: 50px auto;"
+                ),
             ),
         )
     except Exception as e:
@@ -455,9 +536,9 @@ async def save_credenciales(req):
         return Titled(
             "Error",
             Div(
-                H1("❌ Error al Guardar"),
+                H1("[X] Error al Guardar"),
                 P(f"Error: {str(e)}", style="color: #dc2626;"),
-                P(A("← Volver", href="/credenciales"), style="margin-top: 20px;"),
+                P(A("[ARROW] Volver", href="/credenciales"), style="margin-top: 20px;"),
             ),
         )
 
@@ -468,12 +549,13 @@ def admin():
     try:
         stats = get_memory_stats()
         warnings = get_security_warnings()
+        db_status = check_database_connection()
 
         # Build warning display
         warning_elements = []
         if warnings:
             warning_elements.append(
-                H2("⚠️ Advertencias de Seguridad", style="color: #d97706;")
+                H2("[WARNING] Advertencias de Seguridad", style="color: #d97706;")
             )
             for warning in warnings:
                 warning_elements.append(
@@ -484,31 +566,72 @@ def admin():
                 )
         else:
             warning_elements.append(
-                P("✅ No hay advertencias de seguridad", style="color: #059669;")
+                P("[OK] No hay advertencias de seguridad", style="color: #059669;")
+            )
+
+        # Build database status display
+        db_color = "#059669" if db_status["connected"] else "#dc2626"
+        db_bg = "#f0fdf4" if db_status["connected"] else "#fef2f2"
+        db_icon = "[OK]" if db_status["connected"] else "[X]"
+
+        # Build database details elements
+        db_details = [
+            P(
+                f"{db_icon} Tipo: {db_status['type'].upper()}",
+                style="margin: 5px 0;",
+            ),
+            P(f"Conexion: {db_status['message']}", style="margin: 5px 0;"),
+        ]
+
+        # Add error type if present
+        if db_status.get("error_type"):
+            db_details.append(
+                P(
+                    f"Error Type: {db_status['error_type']}",
+                    style="margin: 5px 0; font-weight: bold;",
+                )
+            )
+
+        # Add details if present
+        if db_status.get("details"):
+            db_details.append(
+                P(
+                    f"Details: {db_status['details']}",
+                    style="margin: 5px 0; font-size: 0.9em;",
+                )
             )
 
         return Titled(
             "AMA-Intent v3 - Admin Dashboard",
             Div(
-                H1("🧠 Sistema de Administración"),
+                H1("[BRAIN] Sistema de Administracion"),
                 *warning_elements,
-                H2("📊 Estadísticas de Memoria"),
+                H2("[DISK] Estado de la Base de Datos"),
+                Div(
+                    *db_details,
+                    style=(
+                        f"background: {db_bg}; color: {db_color}; padding: 15px; "
+                        f"border-radius: 8px; margin: 15px 0; border: 2px solid {db_color};"
+                    ),
+                ),
+                H2("[STATS] Estadisticas de Memoria"),
                 P(f"Total de interacciones: {stats['total_interactions']}"),
-                P(f"Por intención: {stats['by_intent']}"),
-                P(f"Primera interacción: {stats['first_interaction'] or 'N/A'}"),
-                P(f"Última interacción: {stats['last_interaction'] or 'N/A'}"),
-                H2("🔧 Endpoints API"),
+                P(f"Por intencion: {stats['by_intent']}"),
+                P(f"Primera interaccion: {stats['first_interaction'] or 'N/A'}"),
+                P(f"Ultima interaccion: {stats['last_interaction'] or 'N/A'}"),
+                H2("[WRENCH] Endpoints API"),
                 Ul(
-                    Li("GET /api/health - Health check con autenticación"),
+                    Li("GET /api/health - Health check con autenticacion"),
+                    Li("GET /api/db/check - Verificar conexion a base de datos"),
                     Li(
                         "POST /api/synapse - Procesamiento principal (requiere secreto)"
                     ),
                     Li("GET /api/memory/search?q=query - Buscar en memoria"),
-                    Li("GET /api/memory/stats - Estadísticas de memoria"),
+                    Li("GET /api/memory/stats - Estadisticas de memoria"),
                     Li("POST /api/memory/cleanup - Limpiar memorias antiguas"),
-                    Li("GET /api/memory/by-intent/{intent} - Filtrar por intención"),
+                    Li("GET /api/memory/by-intent/{intent} - Filtrar por intencion"),
                 ),
-                H2("🔐 Gestión"),
+                H2("[LOCK] Gestion"),
                 P(
                     A("Panel de Credenciales", href="/credenciales"),
                     " - Gestionar claves del sistema",
