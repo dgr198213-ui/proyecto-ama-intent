@@ -334,7 +334,7 @@ def credenciales():
             shared_secret[:8] + "..." if len(shared_secret) > 8 else shared_secret
         )
         fernet_key_display = (
-            fernet_key[:8] + "..." if len(fernet_key) > 8 else "(vacío)"
+            fernet_key[:8] + "..." if len(fernet_key) > 8 else "(ℹ️ vacío)"
         )
 
         warnings = get_security_warnings()
