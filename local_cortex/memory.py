@@ -161,11 +161,11 @@ def get_thoughts_by_intent(intent: str, limit: int = 10) -> List[Dict[str, Any]]
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute(
-            """SELECT timestamp, input, output
+            """SELECT timestamp, input, output, intent
                      FROM interactions
                      WHERE intent = ?
                      ORDER BY id DESC LIMIT ?""",
             (intent, limit),
         )
         rows = c.fetchall()
-    return [{"timestamp": r[0], "input": r[1], "output": r[2]} for r in rows]
+    return [{"timestamp": r[0], "input": r[1], "output": r[2], "intent": r[3]} for r in rows]
