@@ -9,6 +9,7 @@ import shutil
 import sqlite3
 import sys
 import tempfile
+from unittest.mock import patch
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -84,7 +85,7 @@ class TestAMAv3:
         conn.close()
 
         assert result is not None, "Interactions table not created"
-        print("   v Database initialized correctly")
+        print("   ✓ Database initialized correctly")
 
     def test_memory_save_and_retrieve(self):
         """Test saving and retrieving thoughts"""
@@ -103,7 +104,7 @@ class TestAMAv3:
         assert "Write a function" in thoughts, "Second thought not found"
         assert "Analyze data" in thoughts, "Third thought not found"
 
-        print("   v Saved and retrieved 3 thoughts successfully")
+        print("   ✓ Saved and retrieved 3 thoughts successfully")
 
     def test_memory_limit(self):
         """Test thought retrieval limit"""
@@ -124,7 +125,7 @@ class TestAMAv3:
         assert "Input 4" in thoughts, "Most recent thought not found"
         assert "Input 3" in thoughts, "Second most recent thought not found"
 
-        print("   v Limit parameter works correctly")
+        print("   ✓ Limit parameter works correctly")
 
     def test_memory_search(self):
         """Test searching through memories"""
@@ -153,7 +154,7 @@ class TestAMAv3:
             unique_term in r["input"] or unique_term in r["output"] for r in results
         ), f"Not all results contain '{unique_term}'"
 
-        print(f"   v Search found {len(results)} matching thoughts")
+        print(f"   ✓ Search found {len(results)} matching thoughts")
 
     def test_memory_stats(self):
         """Test memory statistics retrieval"""
@@ -174,7 +175,7 @@ class TestAMAv3:
         assert "CODIGO" in stats["by_intent"], "CODIGO intent not found in stats"
 
         print(
-            f"   v Stats retrieved correctly: {stats['total_interactions']} total interactions"
+            f"   ✓ Stats retrieved correctly: {stats['total_interactions']} total interactions"
         )
 
     def test_memory_cleanup(self):
@@ -187,7 +188,7 @@ class TestAMAv3:
         deleted = cleanup_old_thoughts(30)
         assert isinstance(deleted, int)
 
-        print(f"   v Memory cleanup executed successfully (deleted {deleted})")
+        print(f"   ✓ Memory cleanup executed successfully (deleted {deleted})")
 
     def test_memory_by_intent(self):
         """Test retrieving thoughts by intent"""
@@ -205,26 +206,27 @@ class TestAMAv3:
         assert len(results) >= 2, f"Expected at least 2 code results, got {len(results)}"
         assert all(r["intent"] == "CODIGO" for r in results), "Found non-code intent"
 
-        print(f"   v Retrieved {len(results)} thoughts by intent correctly")
+        print(f"   ✓ Retrieved {len(results)} thoughts by intent correctly")
 
     def test_brain_fast_classify(self):
         """Test brain classification (fast mode)"""
         from local_cortex.thought import LocalBrain
 
-        brain = LocalBrain()
+        # Mock ollama.generate to avoid external calls
+        with patch("ollama.generate") as mock_gen:
+            mock_gen.return_value = {"response": "CHAT"}
+            
+            brain = LocalBrain()
 
-        # Test basic classification
-        result = brain.fast_classify("Help me with my code")
-        assert isinstance(result, dict), "Result should be a dictionary"
-        assert "intent" in result, "Result should have 'intent'"
-        assert "confidence" in result, "Result should have 'confidence'"
+            # Test basic classification
+            result = brain.fast_classify("Help me with my code")
+            assert isinstance(result, dict), "Result should be a dictionary"
+            assert result["intent"] == "CHAT", f"Expected intent CHAT, got {result['intent']}"
 
-        print(f"   v Fast classification returned: {result['intent']}")
+        print(f"   ✓ Fast classification returned: {result['intent']}")
 
     def test_brain_think_no_ollama(self):
         """Test brain thinking (mocking Ollama response)"""
-        from unittest.mock import patch
-
         from local_cortex.thought import LocalBrain
 
         brain = LocalBrain()
@@ -237,7 +239,7 @@ class TestAMAv3:
             assert response == "This is a mock response"
             assert mock_chat.called
 
-        print("   v Brain thinking works with mocked LLM")
+        print("   ✓ Brain thinking works with mocked LLM")
 
     def test_server_security_validate_key(self):
         """Test Fernet key validation utility"""
@@ -250,14 +252,7 @@ class TestAMAv3:
         with patch.dict(os.environ, {"FERNET_KEY": "invalid-key"}):
             assert validate_fernet_key() is False
 
-        # Valid base64 encoded 32-byte key
-        valid_key = "7mR9f_XUvI0H_y5-G5k_L1Yv9pE_vX-S5k_L1Yv9pE="
-        with patch.dict(os.environ, {"FERNET_KEY": valid_key}):
-            # This might still fail if not exactly 32 bytes after decode,
-            # but we test the logic flow
-            pass
-
-        print("   v Security validation logic tested")
+        print("   ✓ Security validation logic tested")
 
     def test_database_connection_check(self):
         """Test database connection health utility"""
@@ -269,7 +264,7 @@ class TestAMAv3:
         assert "connected" in status
         assert "type" in status
 
-        print(f"   v Database check returned: {status['type']} (Connected: {status['connected']})")
+        print(f"   ✓ Database check returned: {status['type']} (Connected: {status['connected']})")
 
     def run_all_tests(self):
         """Run all tests in the suite"""

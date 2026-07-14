@@ -1,7 +1,7 @@
 [project]
 name = "proyecto-ama-intent"
-version = "3.2.0"
-description = "Sistema de Cerebro Artificial Biomimetico con gobernanza AMA-G"
+version = "3.4.0"
+description = "Sistema de Cerebro Artificial Biomimético con gobernanza AMA-G"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
